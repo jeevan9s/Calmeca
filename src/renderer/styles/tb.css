@@ -11,7 +11,7 @@
 
 
 
-#titlebar button {
+/* #titlebar button {
   border: none;
   outline: none;
   display: flex;
@@ -23,7 +23,7 @@
   cursor: default;
   border-radius: 0;
   transition: background-color 0.2s ease;
-}
+} */
 p {
   cursor: context-menu;
   user-select: none;
@@ -100,13 +100,21 @@ p {
   transition: background-color 0.2s ease;
 }
 
+#auth-tog {
+  width: 23px;
+  height: 23px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
 #titlebar button#minimize:hover,
 #titlebar button#maximize:hover,
 #titlebar button#sidebar:hover,
 #titlebar button#logo:hover,
 #titlebar button#calendar:hover,
 #titlebar button#alert:hover,
-#titlebar button#nav-tog:hover {
+#titlebar button#nav-tog:hover,
+#titlebar button#auth-tog:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
 

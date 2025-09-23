@@ -4,6 +4,7 @@ import Sidebar from './Sidebar';
 import Titlebar from './Titlebar';
 import QuickNav from './QuickNav';
 import Alerts from './Alerts';
+import AuthDialog from './AuthDialog';
 
 type LayoutProps = {
   disableHoverZones?: boolean;
@@ -14,6 +15,7 @@ export default function Layout({ disableHoverZones = false, children }: LayoutPr
   const [isLocked, setIsLocked] = useState(false);
   const [isHoveredMouse, setIsHoveredMouse] = useState(false);
   const [isHoveredButton, setIsHoveredButton] = useState(false);
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
   const [isQuickNavOpen, setIsQuickNavOpen] = useState(false);
   const [isAlertsOpen, setIsAlertsOpen] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
@@ -53,11 +55,20 @@ export default function Layout({ disableHoverZones = false, children }: LayoutPr
 
   const toggleQuickNav = () => {
     if (windowWidth <= 800 && isAlertsOpen) setIsAlertsOpen(false);
+    if (isAuthDialogOpen) setIsAuthDialogOpen(false)
     setIsQuickNavOpen((prev) => !prev);
   };
 
+    const toggleAuth = () => {
+    if (windowWidth <= 800 && isAlertsOpen) setIsAlertsOpen(false);
+    if(isQuickNavOpen) setIsQuickNavOpen(false)
+    setIsAuthDialogOpen((prev) => !prev);
+  };
+
+
+
   const toggleAlerts = () => {
-    if (windowWidth <= 800 && isQuickNavOpen) setIsQuickNavOpen(false);
+    if (windowWidth <= 800 && isQuickNavOpen) setIsAlertsOpen(false);
     setIsAlertsOpen((prev) => !prev);
   };
 
@@ -73,9 +84,11 @@ export default function Layout({ disableHoverZones = false, children }: LayoutPr
         setIsLocked={setIsLocked}
         solidBackground={true}
         ontoggleQuickNav={toggleQuickNav}
+        ontoggleAuth={toggleAuth}
         ontoggleAlerts={toggleAlerts}
         disableHoverZones={disableHoverZones}
         isAlertsOpen={isAlertsOpen}
+        isAuthDialogOpen={isAuthDialogOpen}
         isQuickNavOpen={isQuickNavOpen}
       />
 
@@ -86,6 +99,12 @@ export default function Layout({ disableHoverZones = false, children }: LayoutPr
         setIsLocked={setIsLocked}
         disableHoverZones={disableHoverZones}
       />
+
+        <AnimatePresence>
+        {isAuthDialogOpen && (
+          <AuthDialog isAuthDialogOpen={isAuthDialogOpen} setIsAuthDialogOpen={setIsAuthDialogOpen} />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {isQuickNavOpen && (
