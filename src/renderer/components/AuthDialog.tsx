@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, easeInOut } from 'framer-motion'
 import  '@/renderer/styles/quicknav.css'
+import { ChevronRight } from 'react-feather';
 
 type AuthDialogProps = {
   isAuthDialogOpen: boolean;
@@ -72,16 +73,24 @@ if (windowHeight <= 400) {
 }
 
   return (
-    <motion.div
-      id="auth-dialog"
-      initial={{ opacity: 0, scale: 0.95, y: -12 }}
-      animate={{ opacity: 1, scale: 1, y: 0, width, height }}
-      exit={{ opacity: 0, scale: 0.95, y: -12 }}
-      transition={{ duration: 0.3, ease: easeInOut }}
-      className="fixed top-12 right-4 z-50 rounded-2xl shadow-lg"
-      style={{ width, height }}
-    >
+<motion.div
+  id="auth-dialog"
+  initial={{ opacity: 0, scale: 0.95, y: -12 }}
+  animate={{ opacity: 1, scale: 1, y: 0, width, height }}
+  exit={{ opacity: 0, scale: 0.95, y: -12 }}
+  transition={{ duration: 0.3, ease: easeInOut }}
+  className="fixed top-12 right-4 z-50 rounded-2xl bg-zinc-900/95"
+  style={{ width, height }}
+>
 
-    </motion.div>
+<div className="flex justify-end w-full">
+  <button className="w-5 h-5 mr-5 mt-4 rounded-lg hover:bg-white/10 rounded-[7px] transition-colors flex items-center justify-center" onClick={() => setIsAuthDialogOpen(false)}>
+    <ChevronRight size={18}/>
+  </button>
+</div>
+
+</motion.div>
+
   )
 }
+

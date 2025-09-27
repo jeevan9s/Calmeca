@@ -121,7 +121,7 @@ export default function TitleBar({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4, ease: "easeInOut" }}
-          style={{ backgroundColor: "#0c0c0cff" }}
+          style={{ backgroundColor: "#0f0f10ff" }}
         />
       )}
       <div className="absolute inset-0 drag" />

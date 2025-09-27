@@ -42,7 +42,7 @@ export default function Sidebar( {isLocked, isHovered, setIsLocked, setIsHovered
       : 'top-12 left-0 bottom-6 shadow-lg rounded-2xl max-h-[600px]'
     }
   `}
-  style={{ backgroundColor: '#0c0c0cff', overflowY: 'hidden' }}
+  style={{ backgroundColor: '#0f0f10ff', overflowY: 'hidden' }}
 >
    {isLocked && (
       <button

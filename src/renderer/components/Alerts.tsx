@@ -1,5 +1,6 @@
 import { easeInOut, motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
+import { ChevronRight } from 'react-feather'
 import '@/renderer/styles/alerts.css'
 
 type alertProps = {
@@ -77,8 +78,22 @@ if (isLocked) {
       }}
       exit={{ opacity: 0, scale: 0.95, y: -12, x: 0 }}
       transition={{ duration: 0.3, ease: easeInOut }}
-      className={`fixed top-12 shadow-lg z-50 rounded-xl bg-[rgba(20,20,20,1)] ${leftPos}`}
+      className={`fixed top-12 z-50 rounded-xl bg-zinc-900/95] ${leftPos}`}
     >
+      <div className="flex justify-end w-full">
+        <button   className="
+    text-white text-sm 
+    w-[23px] h-[23px] 
+    rounded-[6px] 
+    flex items-center justify-center 
+    mr-5 mt-3 
+    transition-colors duration-200 ease-in-out 
+    hover:bg-white/10 
+    cursor-pointer
+  " onClick={() => setIsAlertsOpen(false)}>
+          <ChevronRight size={18}/>
+        </button>
+      </div>
     </motion.div>
   )
 }

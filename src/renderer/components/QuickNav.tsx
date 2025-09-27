@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, easeInOut } from 'framer-motion'
 import  '@/renderer/styles/quicknav.css'
+import { ChevronRight, X } from 'react-feather';
 
 type QuickNavProps = {
   isQuickNavOpen: boolean;
@@ -72,16 +73,24 @@ if (windowHeight <= 400) {
 }
 
   return (
-    <motion.div
-      id="quick-nav-panel"
-      initial={{ opacity: 0, scale: 0.95, y: -12 }}
-      animate={{ opacity: 1, scale: 1, y: 0, width, height }}
-      exit={{ opacity: 0, scale: 0.95, y: -12 }}
-      transition={{ duration: 0.3, ease: easeInOut }}
-      className="fixed top-12 right-4 z-50 rounded-2xl shadow-lg"
-      style={{ width, height }}
+<motion.div
+  id="quick-nav-panel"
+  initial={{ opacity: 0, scale: 0.95, y: -12 }}
+  animate={{ opacity: 1, scale: 1, y: 0, width, height }}
+  exit={{ opacity: 0, scale: 0.95, y: -12 }}
+  transition={{ duration: 0.3, ease: easeInOut }}
+  className="fixed top-12 right-4 z-50 rounded-2xl bg-[#18181BF2] p-4"
+  style={{ width, height }}
+>
+  <div className="flex justify-end w-full">
+    <button
+      className="w-6 h-6 rounded-lg hover:bg-white/10 rounded-[6px] transition-colors flex items-center justify-center"
+      onClick={() => setIsQuickNavOpen(false)}
     >
+      <ChevronRight size={18} className="text-white"/>
+    </button>
+  </div>
+</motion.div>
 
-    </motion.div>
   )
 }
