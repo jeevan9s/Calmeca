@@ -1,9 +1,12 @@
-// IPC handler organizaition for Google 
 import { ipcMain, BrowserWindow } from "electron";
 import path from "path";
 import { google } from "googleapis";
 import { clearSavedTokens, authenticateWithGoogle, getTokenPath } from "@/services/integrations-utils/google/googleAuth";
 import fs from "fs";
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 let win: BrowserWindow | null = null;
 
@@ -50,11 +53,7 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
           return;
         }
 
-        const oauth2Client = new google.auth.OAuth2(
-          clientId,
-          clientSecret,
-          redirectUri
-        );
+        const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 
         authWindow.webContents.on("will-redirect", async (event, url) => {
           if (!url.startsWith(redirectUri)) return;
@@ -101,9 +100,7 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
             }
 
             if (authWindow) {
-              authWindow.loadFile(
-                path.join(__dirname, "..", "assets", "oauth-redirect.html")
-              );
+              authWindow.loadFile(path.join(__dirname, "..", "assets", "oauth-redirect.html"));
             }
 
             setTimeout(() => {
@@ -142,59 +139,133 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
     }
   });
 
+  ipcMain.handle("get-logged-in-user", async () => {
+    try {
+      const tokenPath = getTokenPath();
+      if (!fs.existsSync(tokenPath)) return null;
+
+      const tokens = JSON.parse(fs.readFileSync(tokenPath, "utf-8"));
+      const clientId = process.env.G_CLIENT_ID;
+      const clientSecret = process.env.G_CLIENT_SECRET;
+      const redirectUri = process.env.G_REDIRECT_URI;
+
+      if (!clientId || !clientSecret || !redirectUri) return null;
+
+      const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+      oauth2Client.setCredentials(tokens);
+
+      const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
+      const { data } = await oauth2.userinfo.get();
+
+      return {
+        name: data.name,
+        email: data.email,
+        picture: data.picture,
+      };
+    } catch (err) {
+      console.error("Failed to get logged-in user:", err);
+      return null;
+    }
+  });
+
+  ipcMain.handle("list-calendars", async () => {
+    const tokenPath = getTokenPath();
+    if (!fs.existsSync(tokenPath)) throw new Error("Not logged in");
+
+    const tokens = JSON.parse(fs.readFileSync(tokenPath, "utf-8"));
+    const clientId = process.env.G_CLIENT_ID;
+    const clientSecret = process.env.G_CLIENT_SECRET;
+    const redirectUri = process.env.G_REDIRECT_URI;
+
+    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+    oauth2Client.setCredentials(tokens);
+
+    const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+    const res = await calendar.calendarList.list();
+
+    const calendars = res.data.items.map((c) => ({
+      summary: c.summary,
+      id: c.id,
+    }));
+
+    console.table(calendars);
+    return calendars;
+  });
+
   ipcMain.handle("fetch-google-calendar-events", async () => {
     const tokenPath = getTokenPath();
     if (!fs.existsSync(tokenPath)) throw new Error("Not logged in");
+
     const tokens = JSON.parse(fs.readFileSync(tokenPath, "utf-8"));
     const clientId = process.env.G_CLIENT_ID;
     const clientSecret = process.env.G_CLIENT_SECRET;
     const redirectUri = process.env.G_REDIRECT_URI;
+
     const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
     oauth2Client.setCredentials(tokens);
-  
+
     const calendar = google.calendar({ version: "v3", auth: oauth2Client });
-    const res = await calendar.events.list({
-      calendarId: "primary",
-      timeMin: new Date().toISOString(),
-      maxResults: 10,
-      singleEvents: true,
-      orderBy: "startTime",
-    });
-    return (res.data.items || []).map((item) => ({
-      id: item.id,
-      summary: item.summary || "(No Title)",
-      start: item.start?.dateTime || item.start?.date || "",
-      end: item.end?.dateTime || item.end?.date || "",
-    }));
+
+    const secondaryCalendarId = "trq441hkqhh1g0kcdbe7mdpj77sbmi1o@import.calendar.google.com";
+
+    const fetchEvents = async (calendarId) => {
+      const res = await calendar.events.list({
+        calendarId,
+        timeMin: new Date().toISOString(),
+        maxResults: 20,
+        singleEvents: true,
+        orderBy: "startTime",
+      });
+
+      return (res.data.items || []).filter(
+        (item) => item.start?.dateTime && item.end?.dateTime
+      ).map((item) => ({
+        id: item.id,
+        summary: item.summary || "(No Title)",
+        start: item.start.dateTime,
+        end: item.end.dateTime,
+      }));
+    };
+
+    const [primaryEvents, secondaryEvents] = await Promise.all([
+      fetchEvents("primary"),
+      fetchEvents(secondaryCalendarId),
+    ]);
+
+    const allEvents = [...primaryEvents, ...secondaryEvents].sort(
+      (a, b) => new Date(a.start) - new Date(b.start)
+    );
+
+    return allEvents;
   });
-  
+
   ipcMain.handle("add-google-calendar-event", async (_event, { summary, start }) => {
     const tokenPath = getTokenPath();
     if (!fs.existsSync(tokenPath)) throw new Error("Not logged in");
+
     const tokens = JSON.parse(fs.readFileSync(tokenPath, "utf-8"));
     const clientId = process.env.G_CLIENT_ID;
     const clientSecret = process.env.G_CLIENT_SECRET;
     const redirectUri = process.env.G_REDIRECT_URI;
+
     const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
     oauth2Client.setCredentials(tokens);
-  
+
     const startDate = new Date(start);
     if (isNaN(startDate.getTime())) throw new Error("Invalid start date");
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-  
+
     const event = {
       summary,
       start: { dateTime: startDate.toISOString() },
       end: { dateTime: endDate.toISOString() },
     };
-  
+
     await google.calendar({ version: "v3", auth: oauth2Client }).events.insert({
       calendarId: "primary",
       requestBody: event,
     });
-  
+
     return { success: true };
   });
-  
-  
 }

@@ -183,19 +183,6 @@ export default function TitleBar({
           )}
         </div>
 
-        <div id="b-cntr" className="flex items-center gap-3 ml-6">
-          <div id="alert-cntr" className="flex items-center drag-exclude">
-            <button
-              id="alert"
-              className="flex items-center justify-center drag-exclude"
-              onClick={() => {
-                if (ontoggleAlerts) ontoggleAlerts();
-              }}
-            >
-              <Bell color="white" size={18} strokeWidth={1.25} />
-            </button>
-          </div>
-        </div>
       </div>
 
       <div id="right-bar" className="flex items-center drag-exclude">

@@ -15,7 +15,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   startMicrosoftLogin: async () => ipcRenderer.invoke("start-microsoft-login"),
   microsoftLogout: async () => ipcRenderer.invoke("microsoft-logout"),
 
-  startLoginRedirect: async () => ipcRenderer.invoke("start-google-login"),
+  startGoogleLogin: async () => ipcRenderer.invoke("start-google-login"),
 
   fetchGoogleCalendarEvents: () => ipcRenderer.invoke("fetch-google-calendar-events"),
   addGoogleCalendarEvent: (summary: string, start: string) =>
@@ -24,6 +24,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   readPDF: (filePath: string) => ipcRenderer.invoke("read-pdf", filePath),
   extractCourse: (text: string) => ipcRenderer.invoke("extract-course", text),
   extractCourseFromPDF: (filePath: string) => ipcRenderer.invoke("extract-course-from-pdf", filePath),
+
+  getLoggedInUser: async () => ipcRenderer.invoke("get-logged-in-user"),
 
   onMaximized: (callback: () => void) => {
     const wrapped = (_event: IpcRendererEvent) => callback();

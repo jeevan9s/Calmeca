@@ -30277,6 +30277,8 @@ async function acquireTokenByCode(authCode) {
   saveTokens(result);
   return result;
 }
+const __filename$1 = fileURLToPath(import.meta.url);
+const __dirname$1 = path.dirname(__filename$1);
 let win$2 = null;
 function registerGoogleHandlers(mainWindow) {
   win$2 = mainWindow;
@@ -30291,9 +30293,9 @@ function registerGoogleHandlers(mainWindow) {
           modal: true,
           show: false,
           autoHideMenuBar: true,
-          icon: path.join(import.meta.dirname, "..", "assets", "taskbar.png"),
+          icon: path.join(__dirname$1, "..", "assets", "taskbar.png"),
           webPreferences: {
-            preload: path.join(import.meta.dirname, "..", "src", "preload.js"),
+            preload: path.join(__dirname$1, "..", "src", "preload.js"),
             contextIsolation: true,
             nodeIntegration: false
           }
@@ -30314,11 +30316,7 @@ function registerGoogleHandlers(mainWindow) {
           authWindow == null ? void 0 : authWindow.close();
           return;
         }
-        const oauth2Client = new google.auth.OAuth2(
-          clientId2,
-          clientSecret,
-          redirectUri2
-        );
+        const oauth2Client = new google.auth.OAuth2(clientId2, clientSecret, redirectUri2);
         authWindow.webContents.on("will-redirect", async (event, url) => {
           if (!url.startsWith(redirectUri2)) return;
           event.preventDefault();
@@ -30356,9 +30354,7 @@ function registerGoogleHandlers(mainWindow) {
               });
             }
             if (authWindow) {
-              authWindow.loadFile(
-                path.join(import.meta.dirname, "..", "assets", "oauth-redirect.html")
-              );
+              authWindow.loadFile(path.join(__dirname$1, "..", "assets", "oauth-redirect.html"));
             }
             setTimeout(() => {
               authWindow == null ? void 0 : authWindow.close();
@@ -30394,6 +30390,47 @@ function registerGoogleHandlers(mainWindow) {
       return { success: false, error: (err == null ? void 0 : err.message) || "Unknown error" };
     }
   });
+  ipcMain.handle("get-logged-in-user", async () => {
+    try {
+      const tokenPath2 = getTokenPath$1();
+      if (!fs.existsSync(tokenPath2)) return null;
+      const tokens = JSON.parse(fs.readFileSync(tokenPath2, "utf-8"));
+      const clientId2 = process.env.G_CLIENT_ID;
+      const clientSecret = process.env.G_CLIENT_SECRET;
+      const redirectUri2 = process.env.G_REDIRECT_URI;
+      if (!clientId2 || !clientSecret || !redirectUri2) return null;
+      const oauth2Client = new google.auth.OAuth2(clientId2, clientSecret, redirectUri2);
+      oauth2Client.setCredentials(tokens);
+      const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
+      const { data: data2 } = await oauth2.userinfo.get();
+      return {
+        name: data2.name,
+        email: data2.email,
+        picture: data2.picture
+      };
+    } catch (err) {
+      console.error("Failed to get logged-in user:", err);
+      return null;
+    }
+  });
+  ipcMain.handle("list-calendars", async () => {
+    const tokenPath2 = getTokenPath$1();
+    if (!fs.existsSync(tokenPath2)) throw new Error("Not logged in");
+    const tokens = JSON.parse(fs.readFileSync(tokenPath2, "utf-8"));
+    const clientId2 = process.env.G_CLIENT_ID;
+    const clientSecret = process.env.G_CLIENT_SECRET;
+    const redirectUri2 = process.env.G_REDIRECT_URI;
+    const oauth2Client = new google.auth.OAuth2(clientId2, clientSecret, redirectUri2);
+    oauth2Client.setCredentials(tokens);
+    const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+    const res = await calendar.calendarList.list();
+    const calendars = res.data.items.map((c2) => ({
+      summary: c2.summary,
+      id: c2.id
+    }));
+    console.table(calendars);
+    return calendars;
+  });
   ipcMain.handle("fetch-google-calendar-events", async () => {
     const tokenPath2 = getTokenPath$1();
     if (!fs.existsSync(tokenPath2)) throw new Error("Not logged in");
@@ -30404,22 +30441,35 @@ function registerGoogleHandlers(mainWindow) {
     const oauth2Client = new google.auth.OAuth2(clientId2, clientSecret, redirectUri2);
     oauth2Client.setCredentials(tokens);
     const calendar = google.calendar({ version: "v3", auth: oauth2Client });
-    const res = await calendar.events.list({
-      calendarId: "primary",
-      timeMin: (/* @__PURE__ */ new Date()).toISOString(),
-      maxResults: 10,
-      singleEvents: true,
-      orderBy: "startTime"
-    });
-    return (res.data.items || []).map((item) => {
-      var _a, _b, _c, _d;
-      return {
+    const secondaryCalendarId = "trq441hkqhh1g0kcdbe7mdpj77sbmi1o@import.calendar.google.com";
+    const fetchEvents = async (calendarId) => {
+      const res = await calendar.events.list({
+        calendarId,
+        timeMin: (/* @__PURE__ */ new Date()).toISOString(),
+        maxResults: 20,
+        singleEvents: true,
+        orderBy: "startTime"
+      });
+      return (res.data.items || []).filter(
+        (item) => {
+          var _a, _b;
+          return ((_a = item.start) == null ? void 0 : _a.dateTime) && ((_b = item.end) == null ? void 0 : _b.dateTime);
+        }
+      ).map((item) => ({
         id: item.id,
         summary: item.summary || "(No Title)",
-        start: ((_a = item.start) == null ? void 0 : _a.dateTime) || ((_b = item.start) == null ? void 0 : _b.date) || "",
-        end: ((_c = item.end) == null ? void 0 : _c.dateTime) || ((_d = item.end) == null ? void 0 : _d.date) || ""
-      };
-    });
+        start: item.start.dateTime,
+        end: item.end.dateTime
+      }));
+    };
+    const [primaryEvents, secondaryEvents] = await Promise.all([
+      fetchEvents("primary"),
+      fetchEvents(secondaryCalendarId)
+    ]);
+    const allEvents = [...primaryEvents, ...secondaryEvents].sort(
+      (a2, b) => new Date(a2.start) - new Date(b.start)
+    );
+    return allEvents;
   });
   ipcMain.handle("add-google-calendar-event", async (_event, { summary, start: start2 }) => {
     const tokenPath2 = getTokenPath$1();

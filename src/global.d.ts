@@ -13,7 +13,7 @@ declare global {
       addGoogleCalendarEvent: (summary: string, start: string) => Promise<any>;
       startMicrosoftLogin: () => Promise<any>;
       microsoftLogout: () => Promise<any>;
-      startLoginRedirect: () => Promise<any>;
+      startGoogleLogin: () => Promise<any>;
       onMaximized: (callback: () => void) => void;
       offMaximized: (callback: () => void) => void;
       onNotMaximized: (callback: () => void) => void;

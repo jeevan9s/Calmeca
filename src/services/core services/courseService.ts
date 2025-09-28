@@ -54,6 +54,10 @@ export const getActiveCourses = async () => {
   return all.filter(course => course.archived === false);
 };
 
+export const getCourseById = async (id: string): Promise<Course | undefined> => {
+  return await db.courses.get(id);
+};
+
 export const getAllCourses = async (): Promise<Course[]> => {
   return  db.courses.toArray()
 }

@@ -12,12 +12,13 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
   googleLogout: async () => electron.ipcRenderer.invoke("google-logout"),
   startMicrosoftLogin: async () => electron.ipcRenderer.invoke("start-microsoft-login"),
   microsoftLogout: async () => electron.ipcRenderer.invoke("microsoft-logout"),
-  startLoginRedirect: async () => electron.ipcRenderer.invoke("start-google-login"),
+  startGoogleLogin: async () => electron.ipcRenderer.invoke("start-google-login"),
   fetchGoogleCalendarEvents: () => electron.ipcRenderer.invoke("fetch-google-calendar-events"),
   addGoogleCalendarEvent: (summary, start) => electron.ipcRenderer.invoke("add-google-calendar-event", { summary, start }),
   readPDF: (filePath) => electron.ipcRenderer.invoke("read-pdf", filePath),
   extractCourse: (text) => electron.ipcRenderer.invoke("extract-course", text),
   extractCourseFromPDF: (filePath) => electron.ipcRenderer.invoke("extract-course-from-pdf", filePath),
+  getLoggedInUser: async () => electron.ipcRenderer.invoke("get-logged-in-user"),
   onMaximized: (callback) => {
     const wrapped = (_event) => callback();
     maximizedListeners.set(callback, wrapped);

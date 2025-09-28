@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import Sidebar from './Sidebar';
 import Titlebar from './Titlebar';
 import QuickNav from './QuickNav';
-import Alerts from './Alerts';
 import AuthDialog from './AuthDialog';
 
 type LayoutProps = {
@@ -17,7 +16,6 @@ export default function Layout({ disableHoverZones = false, children }: LayoutPr
   const [isHoveredButton, setIsHoveredButton] = useState(false);
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
   const [isQuickNavOpen, setIsQuickNavOpen] = useState(false);
-  const [isAlertsOpen, setIsAlertsOpen] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   const isHovered = isHoveredButton || isHoveredMouse;
@@ -54,22 +52,13 @@ export default function Layout({ disableHoverZones = false, children }: LayoutPr
   }, [disableHoverZones, isLocked, isHoveredMouse, windowWidth]);
 
   const toggleQuickNav = () => {
-    if (windowWidth <= 800 && isAlertsOpen) setIsAlertsOpen(false);
     if (isAuthDialogOpen) setIsAuthDialogOpen(false)
     setIsQuickNavOpen((prev) => !prev);
   };
 
     const toggleAuth = () => {
-    if (windowWidth <= 800 && isAlertsOpen) setIsAlertsOpen(false);
     if(isQuickNavOpen) setIsQuickNavOpen(false)
     setIsAuthDialogOpen((prev) => !prev);
-  };
-
-
-
-  const toggleAlerts = () => {
-    if (windowWidth <= 800 && isQuickNavOpen) setIsAlertsOpen(false);
-    setIsAlertsOpen((prev) => !prev);
   };
 
   const sidebarVisible = windowWidth <= 600 ? isHovered : isHovered;
@@ -85,9 +74,7 @@ export default function Layout({ disableHoverZones = false, children }: LayoutPr
         solidBackground={true}
         ontoggleQuickNav={toggleQuickNav}
         ontoggleAuth={toggleAuth}
-        ontoggleAlerts={toggleAlerts}
         disableHoverZones={disableHoverZones}
-        isAlertsOpen={isAlertsOpen}
         isAuthDialogOpen={isAuthDialogOpen}
         isQuickNavOpen={isQuickNavOpen}
       />
@@ -109,18 +96,6 @@ export default function Layout({ disableHoverZones = false, children }: LayoutPr
       <AnimatePresence>
         {isQuickNavOpen && (
           <QuickNav isQuickNavOpen={isQuickNavOpen} setIsQuickNavOpen={setIsQuickNavOpen} />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {isAlertsOpen && (
-          <motion.div className="z-50">
-            <Alerts
-              isAlertsOpen={isAlertsOpen}
-              setIsAlertsOpen={setIsAlertsOpen}
-              isLocked={isLocked}
-            />
-          </motion.div>
         )}
       </AnimatePresence>
 
