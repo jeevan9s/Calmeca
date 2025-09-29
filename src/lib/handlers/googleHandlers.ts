@@ -224,6 +224,7 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
         summary: item.summary || "(No Title)",
         start: item.start.dateTime,
         end: item.end.dateTime,
+        location: item.location
       }));
     };
 

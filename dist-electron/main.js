@@ -30459,7 +30459,8 @@ function registerGoogleHandlers(mainWindow) {
         id: item.id,
         summary: item.summary || "(No Title)",
         start: item.start.dateTime,
-        end: item.end.dateTime
+        end: item.end.dateTime,
+        location: item.location
       }));
     };
     const [primaryEvents, secondaryEvents] = await Promise.all([

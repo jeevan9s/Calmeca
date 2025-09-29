@@ -7,11 +7,11 @@ import { useEffect, useState } from "react";
 
 import EventsCard from "@/renderer/components/Dashboard/EventsCard";
 import CoursesCard from "@/renderer/components/Dashboard/CoursesCard";
-import NotificationsCard from "@/renderer/components/Dashboard/NotificationsCard";
+import ClubsCard from "@/renderer/components/Dashboard/clubsCard";
 import DeadlinesCard from "@/renderer/components/Dashboard/DeadlinesCard";
-import QuickStatsCard from "@/renderer/components/Dashboard/QuickStatsCard";
+import UpcomingExamsCard from "@/renderer/components/Dashboard/UpcomingExamsCard";
 import FloatingActionButton from "@/renderer/components/FloatingActionButton";
-import CourseCard from "@/renderer/components/Courses/CourseCard";
+import DailySummaryCard from "@/renderer/components/Dashboard/DailySummaryCard";
 
 export interface CalendarEvent {
   id: string;
@@ -100,12 +100,12 @@ return (
 
           <motion.div className="flex flex-col flex-1 gap-5">
             <div className="flex flex-col sm:flex-row gap-5">
-              <QuickStatsCard />
-              <NotificationsCard />
+              <UpcomingExamsCard />
+              <ClubsCard />
             </div>
-
-            <DeadlinesCard size="small" />
-            <DeadlinesCard size="large" />
+<DailySummaryCard />
+            <DeadlinesCard  />
+            
           </motion.div>
         </motion.div>
       </ScrollArea>

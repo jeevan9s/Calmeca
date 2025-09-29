@@ -10,7 +10,8 @@ export default function App() {
     <div className="w-full h-full">
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/dashboard" element={<CourseOverviewPage />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/courseoverview" element={<CourseOverviewPage />} />
         <Route path="/courses/:courseId" element={<CourseHomepageWrapper />} />
       </Routes>
     </div>

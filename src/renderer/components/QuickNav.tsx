@@ -1,96 +1,35 @@
-import { useState, useEffect } from 'react'
-import { motion, easeInOut } from 'framer-motion'
-import  '@/renderer/styles/quicknav.css'
-import { ChevronRight, X } from 'react-feather';
+"use client";
 
-type QuickNavProps = {
-  isQuickNavOpen: boolean;
-  setIsQuickNavOpen: React.Dispatch<React.SetStateAction<boolean>>;
-};
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/card";
+import { motion } from "framer-motion";
 
-export default function QuickNav({ isQuickNavOpen, setIsQuickNavOpen }: QuickNavProps) {
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth)
-  const [windowHeight, setWindowHeight] = useState(window.innerHeight)
-
-  useEffect(() => {
-    function onResize() {
-      setWindowWidth(window.innerWidth)
-      setWindowHeight(window.innerHeight)
-    }
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
-
-  
-  let width = '12rem' // sm, w-48
-  let height = '8rem'  // h-32
-
-
-
-if (windowWidth >= 1440) {
-  width = '25rem'
-  height = '13rem'
-} else if (windowWidth >= 1320) {
-  width = '24rem'
-  height = '12.5rem'
-} else if (windowWidth >= 1200) {
-  width = '23rem'
-  height = '12rem'
-} else if (windowWidth >= 1080) {
-  width = '22rem'
-  height = '11.5rem'
-} else if (windowWidth >= 1024) {
-  width = '21.5rem'
-  height = '11rem'
-} else if (windowWidth >= 960) {
-  width = '20rem'
-  height = '10.5rem'
-} else if (windowWidth >= 900) {
-  width = '19rem'
-  height = '10rem'
-} else if (windowWidth >= 840) {
-  width = '18rem'
-  height = '9.5rem'
-} else if (windowWidth >= 768) {
-  width = '17rem'
-  height = '9rem'
-} else if (windowWidth >= 700) {
-  width = '16rem'
-  height = '8.5rem'
-} else if (windowWidth >= 640) {
-  width = '15rem'
-  height = '8.25rem'
-} else {
-  width = '13rem'
-  height = '8rem'
-}
-
-if (windowHeight <= 400) {
-  height = '7.5rem'
-  width = '13rem'
-} else if (windowHeight <= 600) {
-  height = '8rem'
-}
-
+export default function DailySummaryCard() {
   return (
-<motion.div
-  id="quick-nav-panel"
-  initial={{ opacity: 0, scale: 0.95, y: -12 }}
-  animate={{ opacity: 1, scale: 1, y: 0, width, height }}
-  exit={{ opacity: 0, scale: 0.95, y: -12 }}
-  transition={{ duration: 0.3, ease: easeInOut }}
-  className="fixed top-12 right-4 z-50 rounded-2xl bg-[#18181BF2] p-4"
-  style={{ width, height }}
->
-  <div className="flex justify-end w-full">
-    <button
-      className="w-6 h-6 rounded-lg hover:bg-white/10 rounded-[6px] transition-colors flex items-center justify-center"
-      onClick={() => setIsQuickNavOpen(false)}
+    <motion.div
+      whileHover={{ scale: 1.02, y: -4 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.2 }}
+      className="flex-1"
     >
-      <ChevronRight size={18} className="text-white"/>
-    </button>
-  </div>
-</motion.div>
-
-  )
+      <Card className="bg-zinc-800/80 border-zinc-700/50 rounded-xl shadow-md w-full min-h-[100px] p-4">
+        <CardHeader className="pb-1">
+          <CardTitle className="text-lg font-semibold text-white">Today's Summary</CardTitle>
+        </CardHeader>
+        <CardContent className="flex justify-between gap-4 pt-1">
+          <div className="flex flex-col items-center">
+            <p className="text-2xl font-bold text-white">3</p>
+            <p className="text-xs text-zinc-400 uppercase">Classes</p>
+          </div>
+          <div className="flex flex-col items-center">
+            <p className="text-2xl font-bold text-white">2</p>
+            <p className="text-xs text-zinc-400 uppercase">Deadlines</p>
+          </div>
+          <div className="flex flex-col items-center">
+            <p className="text-2xl font-bold text-white">1</p>
+            <p className="text-xs text-zinc-400 uppercase">Events</p>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
 }

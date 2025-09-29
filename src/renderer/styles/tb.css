@@ -106,6 +106,12 @@ p {
   border-radius: 6px;
   transition: background-color 0.2s ease;
 }
+#home {
+  width: 23px;
+  height: 23px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
 
 #titlebar button#minimize:hover,
 #titlebar button#maximize:hover,
@@ -114,7 +120,8 @@ p {
 #titlebar button#calendar:hover,
 #titlebar button#alert:hover,
 #titlebar button#nav-tog:hover,
-#titlebar button#auth-tog:hover {
+#titlebar button#auth-tog:hover,
+#titlebar button#home:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
 

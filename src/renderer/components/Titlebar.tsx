@@ -16,6 +16,8 @@ import {
   getLastEditedTime,
   getRelativeTimeStamp,
 } from "../../services/integrations-utils/utilityServicies";
+import { Link } from "react-router-dom";
+import { RiHomeLine } from "react-icons/ri";
 
 type TitleBarProps = {
   solidBackground?: boolean;
@@ -23,7 +25,7 @@ type TitleBarProps = {
   isHovered: boolean;
   isLocked: boolean;
   ontoggleQuickNav?: () => void;
-  ontoggleAuth?: () => void
+  ontoggleAuth?: () => void;
   ontoggleAlerts?: () => void;
   setIsLocked: (locked: boolean) => void;
   setIsHovered: (hovering: boolean) => void;
@@ -128,19 +130,21 @@ export default function TitleBar({
 
       <div id="left-bar" className="flex items-center m-3 drag-exclude min-w-0">
         <div className="flex items-center gap-2 drag-exclude min-w-0">
-          <button
-            id="logo"
-            className="drag-exclude"
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            onClick={() => setIsLocked(false)}
-          >
-            <img
-              src="assets/taskbar.png"
-              alt="Logo"
-              className="h-4 w-4 transition-transform duration-200 hover:scale-110"
-            />
-          </button>
+          <Link to="/dashboard">
+            <button
+              id="logo"
+              className="drag-exclude"
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+              onClick={() => setIsLocked(false)}
+            >
+              <img
+                src="assets/taskbar.png"
+                alt="Logo"
+                className="h-4 w-4 transition-transform duration-200 hover:scale-110"
+              />
+            </button>
+          </Link>
 
           {!isLocked && (
             <button
@@ -176,36 +180,42 @@ export default function TitleBar({
             </button>
           )}
 
+          <Link to="/dashboard">
+            <button id="home" className="drag-exclude">
+              <RiHomeLine            
+                strokeWidth={0.05} />
+            </button>
+          </Link>
+
           {(!isLocked || windowWidth >= 640) && (
             <p className="text-neutral-500 text-xs sm:text-xs leading-none font-md">
               {relativeTime}
             </p>
           )}
         </div>
-
       </div>
 
       <div id="right-bar" className="flex items-center drag-exclude">
         <div className="flex gap-x-3">
-        <button
-          id="auth-tog"
-          className="w-5 h-5 flex items-center justify-center drag-exclude"
-          onClick={() => {
-            if (ontoggleAuth) ontoggleAuth();
-          }}
-        >
-          <User color="white" size={16} strokeWidth={2} />
-        </button>
+          <button
+            id="auth-tog"
+            className="w-5 h-5 flex items-center justify-center drag-exclude"
+            onClick={() => {
+              if (ontoggleAuth) ontoggleAuth();
+            }}
+          >
+            <User color="white" size={16} strokeWidth={2} />
+          </button>
 
-        <button
-          id="nav-tog"
-          className="w-5 h-5 flex items-center justify-center drag-exclude"
-          onClick={() => {
-            if (ontoggleQuickNav) ontoggleQuickNav();
-          }}
-        >
-          <Hexagon color="white" size={16} strokeWidth={2} />
-        </button>
+          <button
+            id="nav-tog"
+            className="w-5 h-5 flex items-center justify-center drag-exclude"
+            onClick={() => {
+              if (ontoggleQuickNav) ontoggleQuickNav();
+            }}
+          >
+            <Hexagon color="white" size={16} strokeWidth={2} />
+          </button>
         </div>
         <div className="flex items-center border-l border-neutral-700 ml-5">
           <button
