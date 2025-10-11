@@ -59,12 +59,12 @@ export default function EventsCard({ events, loading }: EventsCardProps) {
                         <p className="font-semibold">{event.summary}</p>
                         <p className="text-xs text-neutral-400">
                           {new Date(event.start).toLocaleTimeString([], {
-                            hour: "2-digit",
+                            hour: "numeric",
                             minute: "2-digit",
                           })}{" "}
                           -{" "}
                           {new Date(event.end).toLocaleTimeString([], {
-                            hour: "2-digit",
+                            hour: "numeric",
                             minute: "2-digit",
                           })}
                         </p>
@@ -82,10 +82,10 @@ export default function EventsCard({ events, loading }: EventsCardProps) {
         month: "short",
         day: "numeric",
       })} ${new Date(event.start).toLocaleTimeString([], {
-        hour: "2-digit",
+        hour: "numeric",
         minute: "2-digit",
       })} - ${new Date(event.end).toLocaleTimeString([], {
-        hour: "2-digit",
+        hour: "numeric",
         minute: "2-digit",
       })}`}
       <p className="text-sm text-neutral-500">{event.location}</p>

@@ -13,7 +13,7 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
   startMicrosoftLogin: async () => electron.ipcRenderer.invoke("start-microsoft-login"),
   microsoftLogout: async () => electron.ipcRenderer.invoke("microsoft-logout"),
   startGoogleLogin: async () => electron.ipcRenderer.invoke("start-google-login"),
-  fetchGoogleCalendarEvents: () => electron.ipcRenderer.invoke("fetch-google-calendar-events"),
+  fetchGoogleCalendarEvents: (category) => electron.ipcRenderer.invoke("fetch-google-calendar-events", category),
   addGoogleCalendarEvent: (summary, start) => electron.ipcRenderer.invoke("add-google-calendar-event", { summary, start }),
   readPDF: (filePath) => electron.ipcRenderer.invoke("read-pdf", filePath),
   extractCourse: (text) => electron.ipcRenderer.invoke("extract-course", text),

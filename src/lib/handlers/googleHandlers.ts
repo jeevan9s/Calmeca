@@ -168,77 +168,76 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
     }
   });
 
-  ipcMain.handle("list-calendars", async () => {
-    const tokenPath = getTokenPath();
-    if (!fs.existsSync(tokenPath)) throw new Error("Not logged in");
+  // ipcMain.handle("list-calendars", async () => {
+  //   const tokenPath = getTokenPath();
+  //   if (!fs.existsSync(tokenPath)) throw new Error("Not logged in");
 
-    const tokens = JSON.parse(fs.readFileSync(tokenPath, "utf-8"));
-    const clientId = process.env.G_CLIENT_ID;
-    const clientSecret = process.env.G_CLIENT_SECRET;
-    const redirectUri = process.env.G_REDIRECT_URI;
+  //   const tokens = JSON.parse(fs.readFileSync(tokenPath, "utf-8"));
+  //   const clientId = process.env.G_CLIENT_ID;
+  //   const clientSecret = process.env.G_CLIENT_SECRET;
+  //   const redirectUri = process.env.G_REDIRECT_URI;
 
-    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
-    oauth2Client.setCredentials(tokens);
+  //   const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+  //   oauth2Client.setCredentials(tokens);
 
-    const calendar = google.calendar({ version: "v3", auth: oauth2Client });
-    const res = await calendar.calendarList.list();
+  //   const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+  //   const res = await calendar.calendarList.list();
 
-    const calendars = res.data.items.map((c) => ({
-      summary: c.summary,
-      id: c.id,
-    }));
+  //   const calendars = res.data.items!.map((c) => ({
+  //     summary: c.summary,
+  //     id: c.id,
+  //   }));
 
-    console.table(calendars);
-    return calendars;
-  });
+  //   console.table(calendars);
+  //   return calendars;
+  // });
 
-  ipcMain.handle("fetch-google-calendar-events", async () => {
-    const tokenPath = getTokenPath();
-    if (!fs.existsSync(tokenPath)) throw new Error("Not logged in");
+ipcMain.handle("fetch-google-calendar-events", async (_event, category?: string) => {
+  const tokenPath = getTokenPath();
+  if (!fs.existsSync(tokenPath)) throw new Error("Not logged in");
 
-    const tokens = JSON.parse(fs.readFileSync(tokenPath, "utf-8"));
-    const clientId = process.env.G_CLIENT_ID;
-    const clientSecret = process.env.G_CLIENT_SECRET;
-    const redirectUri = process.env.G_REDIRECT_URI;
+  const tokens = JSON.parse(fs.readFileSync(tokenPath, "utf-8"));
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.G_CLIENT_ID,
+    process.env.G_CLIENT_SECRET,
+    process.env.G_REDIRECT_URI
+  );
+  oauth2Client.setCredentials(tokens);
 
-    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
-    oauth2Client.setCredentials(tokens);
+  const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 
-    const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+  const CALENDAR_IDS = {
+    default: "primary",
+    designTeams: "b1eab8a0b93a92b3fa0558e8dfa71ea88becbeb28bdb9ed21893f39ca22ee48a@group.calendar.google.com",
+  };
 
-    const secondaryCalendarId = "trq441hkqhh1g0kcdbe7mdpj77sbmi1o@import.calendar.google.com";
-
-    const fetchEvents = async (calendarId) => {
-      const res = await calendar.events.list({
-        calendarId,
-        timeMin: new Date().toISOString(),
-        maxResults: 20,
-        singleEvents: true,
-        orderBy: "startTime",
-      });
-
-      return (res.data.items || []).filter(
-        (item) => item.start?.dateTime && item.end?.dateTime
-      ).map((item) => ({
-        id: item.id,
-        summary: item.summary || "(No Title)",
-        start: item.start.dateTime,
-        end: item.end.dateTime,
-        location: item.location
+  const fetchEvents = async (calendarId: string) => {
+    const res = await calendar.events.list({
+      calendarId,
+      timeMin: new Date().toISOString(),
+      maxResults: 30,
+      singleEvents: true,
+      orderBy: "startTime",
+    });
+    return (res.data.items || [])
+      .filter((e) => e.start?.dateTime)
+      .map((e) => ({
+        id: e.id,
+        summary: e.summary || "(No Title)",
+        start: e.start!.dateTime,
+        end: e.end!.dateTime,
+        location: e.location,
       }));
-    };
+  };
 
-    const [primaryEvents, secondaryEvents] = await Promise.all([
-      fetchEvents("primary"),
-      fetchEvents(secondaryCalendarId),
-    ]);
+  const events = await fetchEvents(
+    category === "designTeams" ? CALENDAR_IDS.designTeams : CALENDAR_IDS.default
+  );
 
-    const allEvents = [...primaryEvents, ...secondaryEvents].sort(
-      (a, b) => new Date(a.start) - new Date(b.start)
-    );
+  return events;
+});
 
-    return allEvents;
-  });
+
 
   ipcMain.handle("add-google-calendar-event", async (_event, { summary, start }) => {
     const tokenPath = getTokenPath();

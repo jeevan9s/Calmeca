@@ -17,7 +17,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   startGoogleLogin: async () => ipcRenderer.invoke("start-google-login"),
 
-  fetchGoogleCalendarEvents: () => ipcRenderer.invoke("fetch-google-calendar-events"),
+  fetchGoogleCalendarEvents: (category) => ipcRenderer.invoke("fetch-google-calendar-events", category),
   addGoogleCalendarEvent: (summary: string, start: string) =>
     ipcRenderer.invoke("add-google-calendar-event", { summary, start }),
 

@@ -45,6 +45,7 @@ export default function CoursesCard() {
                 key={course.id}
                 name={course.title}
                 code={course.code}
+                color = {course.color}
               />
             ))
           )}
