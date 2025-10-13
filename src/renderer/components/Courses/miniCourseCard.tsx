@@ -19,8 +19,8 @@ export default function MiniCourseCard({ name, code, color }: MiniCourseCardProp
         className="w-4 h-4 rounded-full mb-10"
         style={{ backgroundColor: color }}
       />
-      <p className="text-xs text-neutral-400 truncate font-dm uppercase">{name}</p>
-      <p className="text-lg font-bold text-white truncate mt-1 font-nun">{code}</p>
+      <p className="text-xs font-thin text-neutral-400 truncate font-dm uppercase">{name}</p>
+      <p className="text-2xl font-text-white truncate mt-1 font-nun">{code}</p>
     </motion.div>
   );
 }

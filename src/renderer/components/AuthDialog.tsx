@@ -45,6 +45,15 @@ export default function AuthDialog({ isAuthDialogOpen, setIsAuthDialogOpen }: Au
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await (window as any).electronAPI.googleLogout();
+      setUser(null);
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
+  };
+
   let width = windowWidth >= 1440 ? "25rem" : windowWidth >= 1024 ? "21.5rem" : "16rem";
 
   return (
@@ -66,10 +75,16 @@ export default function AuthDialog({ isAuthDialogOpen, setIsAuthDialogOpen }: Au
       </div>
 
       {user ? (
-        <div className="flex flex-col items-center gap-2 mt-2">
+        <div className="flex flex-col items-center gap-3 mt-2">
           <img src={user.picture} alt="profile" className="w-12 h-12 rounded-full" />
           <p className="text-white font-medium">{user.name}</p>
           <p className="text-neutral-400 text-sm">{user.email}</p>
+          <button
+            onClick={handleLogout}
+            className="mt-3 px-5 py-2 bg-red-500/90 hover:bg-red-600 text-white rounded-full font-semibold transition-colors"
+          >
+            log out
+          </button>
         </div>
       ) : (
         <button

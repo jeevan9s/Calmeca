@@ -3,7 +3,7 @@
 import { ipcMain } from "electron";
 import fs from "fs";
 import path from "path";
-import { readPDF, extractCourseFromText } from "@/services/integrations-utils/NLPServices";
+import { readPDF, extractCourseFromText } from "@/services/integrations-utils/NLPServices.js";
 import { BrowserWindow } from "electron";
 
 let win: BrowserWindow | null = null;

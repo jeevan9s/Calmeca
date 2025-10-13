@@ -24,6 +24,21 @@ export const formatEventDate = (start: string | Date) => {
   }
 };
 
+export const colorPalette = [
+  "#8B0000", // Dark Red
+  "#2F4F4F", // Dark Slate Gray
+  "#191970", // Midnight Blue
+  "#006400", // Dark Green
+  "#8B4513", // Saddle Brown
+  "#4B0082", // Indigo
+  "#2E8B57", // Sea Green
+  "#B8860B", // Dark Goldenrod
+  "#800080", // Purple
+  "#1E90FF", // Dodger Blue
+  "#CD853F", // Peru
+  "#228B22", // Forest Green
+];
+
 
 
 

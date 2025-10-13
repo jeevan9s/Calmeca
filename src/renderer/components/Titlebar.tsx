@@ -183,7 +183,8 @@ export default function TitleBar({
           <Link to="/dashboard">
             <button id="home" className="drag-exclude">
               <RiHomeLine            
-                strokeWidth={0.05} />
+                strokeWidth={0.05}
+                color="white" />
             </button>
           </Link>
 

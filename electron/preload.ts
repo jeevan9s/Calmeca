@@ -18,8 +18,21 @@ contextBridge.exposeInMainWorld("electronAPI", {
   startGoogleLogin: async () => ipcRenderer.invoke("start-google-login"),
 
   fetchGoogleCalendarEvents: (category) => ipcRenderer.invoke("fetch-google-calendar-events", category),
-  addGoogleCalendarEvent: (summary: string, start: string) =>
-    ipcRenderer.invoke("add-google-calendar-event", { summary, start }),
+  
+  addGoogleCalendarEvent: (
+    summary: string,
+    start: string,
+    end: string,
+    allDay: boolean
+  ) =>
+    ipcRenderer.invoke(
+      "add-google-calendar-event",
+      summary,
+      start,
+      end,
+      allDay,
+    ),
+      
 
   readPDF: (filePath: string) => ipcRenderer.invoke("read-pdf", filePath),
   extractCourse: (text: string) => ipcRenderer.invoke("extract-course", text),

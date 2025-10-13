@@ -3,16 +3,42 @@ import path from "path";
 import { google } from "googleapis";
 import { clearSavedTokens, authenticateWithGoogle, getTokenPath } from "@/services/integrations-utils/google/googleAuth";
 import fs from "fs";
-import { fileURLToPath } from 'url';
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let win: BrowserWindow | null = null;
 
+async function getOAuthClient() {
+  const tokenPath = getTokenPath();
+  if (!fs.existsSync(tokenPath)) throw new Error("Not logged in");
+
+  const tokens = JSON.parse(fs.readFileSync(tokenPath, "utf-8"));
+
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.G_CLIENT_ID,
+    process.env.G_CLIENT_SECRET,
+    process.env.G_REDIRECT_URI
+  );
+
+  oauth2Client.setCredentials(tokens);
+
+  // Refresh token if expired
+  const newToken = await oauth2Client.getAccessToken();
+  if (newToken.token) {
+    const updatedTokens = { ...tokens, access_token: newToken.token };
+    fs.writeFileSync(tokenPath, JSON.stringify(updatedTokens));
+    oauth2Client.setCredentials(updatedTokens);
+  }
+
+  return oauth2Client;
+}
+
 export function registerGoogleHandlers(mainWindow: BrowserWindow) {
   win = mainWindow;
 
+  // ✅ GOOGLE LOGIN
   ipcMain.handle("start-google-login", async () => {
     return new Promise(async (resolve, reject) => {
       try {
@@ -34,29 +60,23 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
         });
 
         authWindow.loadURL(authUrl);
-        authWindow.once("ready-to-show", () => {
-          if (authWindow) authWindow.show();
-        });
-
+        authWindow.once("ready-to-show", () => authWindow?.show());
         authWindow.on("closed", () => {
           authWindow = null;
-          reject(new Error("login window closed"));
+          reject(new Error("Login window closed"));
         });
 
-        const clientId = process.env.G_CLIENT_ID;
-        const clientSecret = process.env.G_CLIENT_SECRET;
-        const redirectUri = process.env.G_REDIRECT_URI;
-
-        if (!clientId || !clientSecret || !redirectUri) {
-          reject(new Error("missing OAuth configuration"));
+        const { G_CLIENT_ID, G_CLIENT_SECRET, G_REDIRECT_URI } = process.env;
+        if (!G_CLIENT_ID || !G_CLIENT_SECRET || !G_REDIRECT_URI) {
+          reject(new Error("Missing OAuth configuration"));
           authWindow?.close();
           return;
         }
 
-        const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+        const oauth2Client = new google.auth.OAuth2(G_CLIENT_ID, G_CLIENT_SECRET, G_REDIRECT_URI);
 
         authWindow.webContents.on("will-redirect", async (event, url) => {
-          if (!url.startsWith(redirectUri)) return;
+          if (!url.startsWith(G_REDIRECT_URI!)) return;
 
           event.preventDefault();
           const parsedUrl = new URL(url);
@@ -70,7 +90,7 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
           }
 
           if (!code) {
-            reject(new Error("no code found in redirect URL"));
+            reject(new Error("No code found in redirect URL"));
             authWindow?.close();
             return;
           }
@@ -79,7 +99,7 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
             const { tokens } = await oauth2Client.getToken({
               code,
               codeVerifier: verifier,
-              redirect_uri: redirectUri,
+              redirect_uri: G_REDIRECT_URI,
             });
             oauth2Client.setCredentials(tokens);
 
@@ -89,20 +109,15 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
             const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
             const { data } = await oauth2.userinfo.get();
 
-            if (win) {
-              win.webContents.send("google-login-success", {
-                user: {
-                  name: data.name,
-                  email: data.email,
-                  picture: data.picture,
-                },
-              });
-            }
+            win?.webContents.send("google-login-success", {
+              user: {
+                name: data.name,
+                email: data.email,
+                picture: data.picture,
+              },
+            });
 
-            if (authWindow) {
-              authWindow.loadFile(path.join(__dirname, "..", "assets", "oauth-redirect.html"));
-            }
-
+            authWindow?.loadFile(path.join(__dirname, "..", "assets", "oauth-redirect.html"));
             setTimeout(() => {
               authWindow?.close();
               authWindow = null;
@@ -120,7 +135,6 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
             console.error("Token exchange failed:", tokenError);
             reject(tokenError);
             authWindow?.close();
-            authWindow = null;
           }
         });
       } catch (error) {
@@ -141,19 +155,7 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
 
   ipcMain.handle("get-logged-in-user", async () => {
     try {
-      const tokenPath = getTokenPath();
-      if (!fs.existsSync(tokenPath)) return null;
-
-      const tokens = JSON.parse(fs.readFileSync(tokenPath, "utf-8"));
-      const clientId = process.env.G_CLIENT_ID;
-      const clientSecret = process.env.G_CLIENT_SECRET;
-      const redirectUri = process.env.G_REDIRECT_URI;
-
-      if (!clientId || !clientSecret || !redirectUri) return null;
-
-      const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
-      oauth2Client.setCredentials(tokens);
-
+      const oauth2Client = await getOAuthClient();
       const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
       const { data } = await oauth2.userinfo.get();
 
@@ -168,104 +170,93 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
     }
   });
 
-  // ipcMain.handle("list-calendars", async () => {
-  //   const tokenPath = getTokenPath();
-  //   if (!fs.existsSync(tokenPath)) throw new Error("Not logged in");
+  ipcMain.handle("fetch-google-calendar-events", async (_event, category?: string) => {
+    const oauth2Client = await getOAuthClient();
+    const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 
-  //   const tokens = JSON.parse(fs.readFileSync(tokenPath, "utf-8"));
-  //   const clientId = process.env.G_CLIENT_ID;
-  //   const clientSecret = process.env.G_CLIENT_SECRET;
-  //   const redirectUri = process.env.G_REDIRECT_URI;
+    const CALENDAR_IDS = {
+      default: "primary",
+      designTeams: "b1eab8a0b93a92b3fa0558e8dfa71ea88becbeb28bdb9ed21893f39ca22ee48a@group.calendar.google.com",
+    };
 
-  //   const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
-  //   oauth2Client.setCredentials(tokens);
-
-  //   const calendar = google.calendar({ version: "v3", auth: oauth2Client });
-  //   const res = await calendar.calendarList.list();
-
-  //   const calendars = res.data.items!.map((c) => ({
-  //     summary: c.summary,
-  //     id: c.id,
-  //   }));
-
-  //   console.table(calendars);
-  //   return calendars;
-  // });
-
-ipcMain.handle("fetch-google-calendar-events", async (_event, category?: string) => {
-  const tokenPath = getTokenPath();
-  if (!fs.existsSync(tokenPath)) throw new Error("Not logged in");
-
-  const tokens = JSON.parse(fs.readFileSync(tokenPath, "utf-8"));
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.G_CLIENT_ID,
-    process.env.G_CLIENT_SECRET,
-    process.env.G_REDIRECT_URI
-  );
-  oauth2Client.setCredentials(tokens);
-
-  const calendar = google.calendar({ version: "v3", auth: oauth2Client });
-
-  const CALENDAR_IDS = {
-    default: "primary",
-    designTeams: "b1eab8a0b93a92b3fa0558e8dfa71ea88becbeb28bdb9ed21893f39ca22ee48a@group.calendar.google.com",
-  };
-
-  const fetchEvents = async (calendarId: string) => {
     const res = await calendar.events.list({
-      calendarId,
+      calendarId: category === "designTeams" ? CALENDAR_IDS.designTeams : CALENDAR_IDS.default,
       timeMin: new Date().toISOString(),
       maxResults: 30,
       singleEvents: true,
       orderBy: "startTime",
     });
-    return (res.data.items || [])
-      .filter((e) => e.start?.dateTime)
-      .map((e) => ({
-        id: e.id,
-        summary: e.summary || "(No Title)",
-        start: e.start!.dateTime,
-        end: e.end!.dateTime,
-        location: e.location,
-      }));
-  };
 
-  const events = await fetchEvents(
-    category === "designTeams" ? CALENDAR_IDS.designTeams : CALENDAR_IDS.default
-  );
-
-  return events;
-});
-
-
-
-  ipcMain.handle("add-google-calendar-event", async (_event, { summary, start }) => {
-    const tokenPath = getTokenPath();
-    if (!fs.existsSync(tokenPath)) throw new Error("Not logged in");
-
-    const tokens = JSON.parse(fs.readFileSync(tokenPath, "utf-8"));
-    const clientId = process.env.G_CLIENT_ID;
-    const clientSecret = process.env.G_CLIENT_SECRET;
-    const redirectUri = process.env.G_REDIRECT_URI;
-
-    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
-    oauth2Client.setCredentials(tokens);
-
-    const startDate = new Date(start);
-    if (isNaN(startDate.getTime())) throw new Error("Invalid start date");
-    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-
-    const event = {
-      summary,
-      start: { dateTime: startDate.toISOString() },
-      end: { dateTime: endDate.toISOString() },
-    };
-
-    await google.calendar({ version: "v3", auth: oauth2Client }).events.insert({
-      calendarId: "primary",
-      requestBody: event,
-    });
-
-    return { success: true };
+    return (res.data.items || []).map((e) => ({
+      id: e.id,
+      summary: e.summary || "(No Title)",
+      start: e.start?.dateTime || e.start?.date,
+      end: e.end?.dateTime || e.end?.date,
+      location: e.location,
+    }));
   });
+
+  ipcMain.handle(
+  "add-google-calendar-event",
+  async (_event, summary: string, startStr: string, endStr?: string, allDay = false) => {
+    console.log("[googleHandlers] add-google-calendar-event", { summary, startStr, endStr, allDay });
+
+    const oauth2Client = await getOAuthClient();
+    const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+
+    if (!startStr) throw new Error("Missing start date");
+    const startDate = new Date(startStr);
+    if (isNaN(startDate.getTime())) throw new Error("Invalid start date");
+
+    const endDate = endStr
+      ? new Date(endStr)
+      : allDay
+      ? new Date(startDate.getTime() + 24 * 60 * 60 * 1000)
+      : new Date(startDate.getTime() + 60 * 60 * 1000);
+    if (isNaN(endDate.getTime())) throw new Error("Invalid end date");
+
+    try {
+      const res = await calendar.events.list({
+        calendarId: "primary",
+        q: summary,
+        timeMin: new Date(2000, 0, 1).toISOString(),
+        timeMax: new Date(2100, 0, 1).toISOString(),
+        singleEvents: true,
+      });
+
+      const existingEvents = res.data.items || [];
+      for (const evt of existingEvents) {
+        if (evt.summary === summary) {
+          console.log("[googleHandlers] Deleting existing event:", evt.id, evt.summary);
+          await calendar.events.delete({ calendarId: "primary", eventId: evt.id! });
+        }
+      }
+    } catch (err) {
+      console.warn("[googleHandlers] Failed to check/delete existing events:", err);
+    }
+
+    const event: any = { summary };
+
+    if (allDay) {
+      event.start = { date: startDate.toISOString().split("T")[0] };
+      event.end = { date: endDate.toISOString().split("T")[0] };
+    } else {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      event.start = {
+        dateTime: startDate.toISOString(),
+        timeZone: tz,
+      };
+      event.end = {
+        dateTime: endDate.toISOString(),
+        timeZone: tz,
+      };
+    }
+
+    console.log("[googleHandlers] Final event payload:", event);
+    await calendar.events.insert({ calendarId: "primary", requestBody: event });
+
+    console.log("[googleHandlers] Event inserted successfully");
+    return { success: true };
+  }
+);
 }

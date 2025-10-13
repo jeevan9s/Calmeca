@@ -10,7 +10,7 @@ declare global {
       googleLogin: () => Promise<any>;
       googleLogout: () => Promise<any>;
       fetchGoogleCalendarEvents: () => Promise<any>;
-      addGoogleCalendarEvent: (summary: string, start: string) => Promise<any>;
+      addGoogleCalendarEvent: (summary: string, start: string, end:string, color?:string) => Promise<any>;
       startMicrosoftLogin: () => Promise<any>;
       microsoftLogout: () => Promise<any>;
       startGoogleLogin: () => Promise<any>;
