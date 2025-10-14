@@ -12,25 +12,40 @@ type TaskFilter = {
 
 // CREATE
 export const createTask = async (task: Omit<Task, 'id' | 'completed' | 'color'>) => {
+  const color = task.courseId ? await getCourseColor(task.courseId) : null;
+
   const newTask: Task = {
     ...task,
     id: generateId(),
     completed: false,
-    color: await getCourseColor(task.courseId),
+    color,
   };
 
   await db.tasks.add(newTask);
 
-  await addEvent({
-    title: newTask.title,
-    date: newTask.deadline,
-    source: 'task',
-    sourceId: newTask.id,
-  });
+  if (newTask.deadline) {
+    await addEvent({
+      title: newTask.title,
+      date: newTask.deadline,
+      source: 'task',
+      sourceId: newTask.id,
+    });
+  }
 
-  await updateCourseFromChild(newTask.courseId, 'task');
+  if (task.courseId) await updateCourseFromChild(task.courseId, 'task');
 
   return newTask;
+};
+
+export const clearTasks = async (courseId?: string) => {
+  let collection = db.tasks.toCollection();
+  if (courseId) {
+    collection = collection.filter((t) => t.courseId === courseId);
+  }
+  const allTasks = await collection.toArray();
+  for (const task of allTasks) {
+    await deleteTask(task.id);
+  }
 };
 
 // READ

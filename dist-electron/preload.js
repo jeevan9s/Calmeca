@@ -14,13 +14,17 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
   microsoftLogout: async () => electron.ipcRenderer.invoke("microsoft-logout"),
   startGoogleLogin: async () => electron.ipcRenderer.invoke("start-google-login"),
   fetchGoogleCalendarEvents: (category) => electron.ipcRenderer.invoke("fetch-google-calendar-events", category),
-  addGoogleCalendarEvent: (summary, start, end, allDay) => electron.ipcRenderer.invoke(
+  addGoogleCalendarEvent: (summary, start, end, allDay, recurrence) => electron.ipcRenderer.invoke(
     "add-google-calendar-event",
     summary,
     start,
     end,
-    allDay
+    allDay,
+    recurrence
   ),
+  shell: {
+    openExternal: (url) => electron.shell.openExternal(url)
+  },
   readPDF: (filePath) => electron.ipcRenderer.invoke("read-pdf", filePath),
   extractCourse: (text) => electron.ipcRenderer.invoke("extract-course", text),
   extractCourseFromPDF: (filePath) => electron.ipcRenderer.invoke("extract-course-from-pdf", filePath),

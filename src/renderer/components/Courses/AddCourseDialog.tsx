@@ -1,21 +1,16 @@
 "use client";
 
-import { useState, Fragment, useEffect } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { Paperclip, Plus, Minus } from "react-feather";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-  TooltipProvider,
-} from "@radix-ui/react-tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@radix-ui/react-tooltip";
 import { Course, CourseType } from "@/services/db";
-import { addCourse, updateCourse } from "@/services/core services/courseService";
-import { generateId } from "@/services/integrations-utils/utilityServicies";
+import { addCourse, updateCourse, getCourseById } from "@/services/core services/courseService";
 import CourseFormFields from "./CourseFormFields";
 import DateTimePicker from "./DatePickerComponent";
 import ColorPickerField from "./ColourPickerField";
 import { addCalendarEvent } from "@/lib/helpers/calendarHelpers";
+import { IconPicker } from "@/components/ui/icon-picker";
 
 interface AddCourseDialogProps {
   isOpen: boolean;
@@ -36,122 +31,138 @@ export default function AddCourseDialog({
   const [code, setCode] = useState("");
   const [professor, setProfessor] = useState("");
   const [profEmail, setProfEmail] = useState("");
-  const [selectedType, setSelectedType] = useState<CourseType>("lecture-tutorial");
+  const [selectedType, setSelectedType] = useState<CourseType>("lecture");
   const [endDate, setEndDate] = useState<Date | null>(null);
-  const [midterms, setMidterms] = useState<{ start: Date; end: Date }[]>([]);
-  const [finalExam, setFinalExam] = useState<{ start: Date; end: Date } | null>(null);
+  const [midterms, setMidterms] = useState<{ start: Date | null; end: Date | null }[]>([]);
+  const [finalExam, setFinalExam] = useState<{ start: Date | null; end: Date | null } | null>(null);
   const [color, setColor] = useState("#8B0000");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [description, setDescription] = useState(existingCourse?.description || "");
+  const [description, setDescription] = useState("");
+  const [courseIcon, setCourseIcon] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const [credits, setCredits] = useState<number | null>(null);
+
   const isEditing = !!existingCourse;
 
-useEffect(() => {
-  if (existingCourse) {
-    setTitle(existingCourse.title);
-    setCode(existingCourse.code);
-    setProfessor(existingCourse.professor || "");
-    setProfEmail(existingCourse.profEmail || "");
-    setSelectedType(existingCourse.type);
-    setEndDate(existingCourse.endsOn ? new Date(existingCourse.endsOn) : null);
+  // 👈 Ref to ensure we only initialize once per course
+  const hasLoaded = useRef(false);
+  const prevCourseId = useRef<string | null>(null);
 
-    setMidterms(
-      existingCourse.midterms?.map((mt) => {
-        let start: Date;
-        let end: Date;
+  useEffect(() => {
+    if (!isOpen || !existingCourse) return;
 
-        if (mt.start instanceof Date) {
-          start = new Date(mt.start);
-          end = new Date(mt.end);
-        } else {
-          start = new Date(mt.start);
-          end = new Date(mt.end || start.getTime() + 60 * 60 * 1000);
-        }
+    // Skip if we've already loaded this course
+    if (hasLoaded.current && prevCourseId.current === existingCourse.id) return;
 
-        return { start, end };
-      }) || []
-    );
+    const loadCourseData = async () => {
+      try {
+        const latest = await getCourseById(existingCourse.id);
+        if (!latest) return;
 
-    // Handle final exam - only convert if necessary
-    if (existingCourse.finalExamDate) {
-      const start =
-        existingCourse.finalExamDate instanceof Date
-          ? new Date(existingCourse.finalExamDate)
-          : new Date(existingCourse.finalExamDate);
+        setTitle(latest.title || "");
+        setCode(latest.code || "");
+        setProfessor(latest.professor || "");
+        setProfEmail(latest.profEmail || "");
+        setSelectedType(latest.type ?? "lecture");
+        setEndDate(latest.endsOn ? new Date(latest.endsOn) : null);
+        setCourseIcon(typeof latest.icon === "string" ? latest.icon : null);
+        setCredits(latest.credits ?? null);
+        setDescription(latest.description || "");
+        setColor(latest.color || "#8B0000");
 
-      const end = finalExam?.end || new Date(start.getTime() + 2 * 60 * 60 * 1000);
+        setMidterms(
+          (latest.midterms || []).map((mt) => ({
+            start: mt.start ? new Date(mt.start) : null,
+            end: mt.end ? new Date(mt.end) : null,
+          }))
+        );
 
-      setFinalExam({ start, end });
-    } else {
+        setFinalExam(
+          latest.finalExamDate
+            ? { start: new Date(latest.finalExamDate), end: new Date(latest.finalExamDate) }
+            : null
+        );
+
+        // mark loaded
+        hasLoaded.current = true;
+        prevCourseId.current = existingCourse.id;
+      } catch (err) {
+        console.error("Error fetching latest course", err);
+      }
+    };
+
+    loadCourseData();
+  }, [isOpen, existingCourse]);
+
+  // Reset form when closing dialog or switching courses
+  useEffect(() => {
+    if (!isOpen) {
+      setTitle("");
+      setCode("");
+      setProfessor("");
+      setProfEmail("");
+      setSelectedType("lecture");
+      setEndDate(null);
+      setMidterms([]);
       setFinalExam(null);
+      setColor("#8B0000");
+      setPdfFile(null);
+      setDescription("");
+      setCourseIcon(null);
+      setCredits(null);
+      hasLoaded.current = false;
+      prevCourseId.current = null;
     }
-
-    setColor(existingCourse.color || "#8B0000");
-    setDescription(existingCourse.description || "");
-  } else {
-    setTitle("");
-    setCode("");
-    setProfessor("");
-    setProfEmail("");
-    setSelectedType("lecture-tutorial");
-    setEndDate(null);
-    setMidterms([{ start: new Date(), end: new Date(new Date().getTime() + 60 * 60 * 1000) }]);
-    setFinalExam(null);
-    setColor("#8B0000");
-    setPdfFile(null);
-    setDescription("");
-  }
-}, [existingCourse, isOpen]);
-
+  }, [isOpen]);
 
   const handlePdfUpload = async (file: File) => {
-    setPdfFile(file);
     setIsPdfLoading(true);
     try {
       if (window.electronAPI) {
-        const result = await window.electronAPI.extractCourseFromPDF(file.path);
+        const arrayBuffer = await file.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        const base64String = btoa(String.fromCharCode(...uint8Array));
+        const result = await window.electronAPI.extractCourseFromPDF(base64String);
         if (result.success) {
           const data = result.course;
           if (data.title) setTitle(data.title);
           if (data.code) setCode(data.code);
           if (data.professor) setProfessor(data.professor);
           if (data.profEmail) setProfEmail(data.profEmail);
+          if (data.credits) setCredits(data.credits);
         }
       }
     } catch (err) {
       console.error(err);
     } finally {
       setIsPdfLoading(false);
-      setPdfFile(null);
       const input = document.querySelector<HTMLInputElement>('input[type="file"]');
       if (input) input.value = "";
     }
   };
 
   const handleSubmit = async () => {
-    if (!title || !code || !professor || !endDate) return;
+    if (!title || !code || !professor || !endDate || credits === null || isNaN(credits)) return;
     setIsSubmitting(true);
 
     try {
-      console.log("Before conversion - Midterms:", midterms);
-      console.log("Before conversion - Final Exam:", finalExam);
-      console.log("Before conversion - Course end:", endDate);
-
-      const courseData = {
+      const courseData: Partial<Course> = {
         title,
         code,
         professor,
         profEmail,
-        type: selectedType,
+        type: selectedType!,
         endsOn: endDate,
         description,
         color,
-        midterms,
-        finalExamDate: finalExam?.start || null,
+        midterms: midterms
+          .filter((mt) => mt.start && mt.end)
+          .map((mt) => ({ start: mt.start!, end: mt.end! })),
+        finalExamDate: finalExam?.start ?? undefined,
+        icon: courseIcon || null,
+        credits: credits ?? 0,
       };
-
-      console.log("Course data being sent:", courseData);
 
       let course: Course;
 
@@ -160,54 +171,49 @@ useEffect(() => {
         course = { ...existingCourse, ...courseData, updatedOn: new Date() };
         onUpdateCourse?.(course);
       } else {
-        course = await addCourse({
+        const newCourseData = {
           ...courseData,
-          id: generateId(),
-          createdOn: new Date(),
-          updatedOn: new Date(),
           homepage: { deadlines: [], tasks: [], resources: [], notes: "", announcements: [] },
-        });
+          selectedType: selectedType!,
+        };
+        course = await addCourse(newCourseData);
         onAddCourse?.(course);
       }
 
-      const events: { summary: string; start: Date; end: Date; type: "deadline" | "exam"; allDay?: boolean; description?: string }[] = [];
+      // Add calendar events
+      const events: { summary: string; start: Date; end: Date; allDay?: boolean }[] = [];
 
-      events.push({
-        summary: `${title} - Course End`,
-        start: new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()),
-        end: new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() + 1),
-        type: "deadline",
-        allDay: true,
-        description,
-      });
-
-      midterms.forEach((mt, i) => {
-        console.log(`Midterm ${i + 1} sending:`, mt);
+      if (endDate) {
         events.push({
-          summary: `${title} - Midterm ${i + 1}`,
-          start: mt.start,
-          end: mt.end,
-          type: "exam",
-          allDay: false,
-          description,
-        });
-      });
-
-      if (finalExam) {
-        console.log("Final exam sending:", finalExam);
-        events.push({
-          summary: `${title} - Final Exam`,
-          start: finalExam.start,
-          end: finalExam.end,
-          type: "exam",
-          allDay: false,
-          description,
+          summary: `${title} - Course End`,
+          start: new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()),
+          end: new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() + 1),
+          allDay: true,
         });
       }
 
-      for (const evt of events) {
-        console.log("Adding to calendar:", evt);
-        await addCalendarEvent(evt.summary, evt.start, evt.end, evt.type, evt.allDay ?? false, evt.description);
+      midterms.forEach((mt, i) => {
+        if (mt.start && mt.end) {
+          events.push({ summary: `${title} - Midterm ${i + 1}`, start: mt.start, end: mt.end });
+        }
+      });
+
+      if (finalExam?.start && finalExam?.end) {
+        events.push({ summary: `${title} - Final Exam`, start: finalExam.start, end: finalExam.end });
+      }
+
+      if (window.electronAPI) {
+        await Promise.all(
+          events.map((evt) =>
+            addCalendarEvent(
+              evt.summary,
+              evt.start,
+              evt.end,
+              evt.summary.toLowerCase().includes("exam") ? "exam" : "deadline",
+              evt.allDay ?? false
+            )
+          )
+        );
       }
 
       onClose();
@@ -220,10 +226,8 @@ useEffect(() => {
 
   const addMidterm = () => {
     if (midterms.length >= 2) return;
-    setMidterms([
-      ...midterms,
-      { start: new Date(), end: new Date(new Date().getTime() + 60 * 60 * 1000) },
-    ]);
+    const lastEnd = midterms[midterms.length - 1]?.end ?? new Date();
+    setMidterms([...midterms, { start: lastEnd, end: new Date(lastEnd.getTime() + 60 * 60 * 1000) }]);
   };
 
   const removeMidterm = (index: number) => setMidterms(midterms.filter((_, i) => i !== index));
@@ -243,31 +247,34 @@ useEffect(() => {
                 leaveFrom="opacity-100 translate-x-0"
                 leaveTo="opacity-0 translate-x-full"
               >
-                <Dialog.Panel className="w-full max-w-md transform rounded-xl bg-neutral-900/90 p-6 text-left shadow-xl transition-all">
+                <Dialog.Panel className="w-full max-w-md transform rounded-xl bg-neutral-900  p-6 text-left shadow-xl transition-all">
                   <div className="flex items-center justify-between">
                     <Dialog.Title className="text-lg text-white font-nun font-semibold">
                       {isEditing ? "Edit Course" : "Add Course"}
                     </Dialog.Title>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <label className="flex h-6 w-6 items-center justify-center rounded-md text-white hover:bg-gray-600/30 cursor-pointer">
-                          <input
-                            type="file"
-                            accept=".pdf"
-                            className="hidden"
-                            onChange={(e) => e.target.files && handlePdfUpload(e.target.files[0])}
-                          />
-                          {isPdfLoading ? (
-                            <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                          ) : (
-                            <Paperclip size={16} />
-                          )}
-                        </label>
-                      </TooltipTrigger>
-                      <TooltipContent side="left" className="bg-zinc-800 text-white/90 rounded-md text-xs font-dm p-2 mr-1 font-thin">
-                        upload syllabus (beta NLP extraction)
-                      </TooltipContent>
-                    </Tooltip>
+                    <div className="flex gap-2 items-center">
+                      <IconPicker value={courseIcon as any} onValueChange={setCourseIcon} />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <label className="flex h-6 w-6 items-center justify-center rounded-md text-white hover:bg-gray-600/30 cursor-pointer">
+                            <input
+                              type="file"
+                              accept=".pdf"
+                              className="hidden"
+                              onChange={(e) => e.target.files && handlePdfUpload(e.target.files[0])}
+                            />
+                            {isPdfLoading ? (
+                              <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                            ) : (
+                              <Paperclip size={16} />
+                            )}
+                          </label>
+                        </TooltipTrigger>
+                        <TooltipContent side="left" className="bg-zinc-800 text-white/90 rounded-md text-xs font-dm p-2 mr-1 font-thin">
+                          upload syllabus (beta NLP extraction)
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
                   </div>
 
                   <div className="mt-4 space-y-4">
@@ -284,6 +291,8 @@ useEffect(() => {
                       setSelectedType={setSelectedType}
                       description={description}
                       setDescription={setDescription}
+                      officeHours={""}
+                      setOfficeHours={function (value: string): void { throw new Error("Function not implemented."); }}
                     />
 
                     <div className="flex flex-col gap-2">
@@ -292,10 +301,12 @@ useEffect(() => {
                           <DateTimePicker
                             label={`midterm ${i + 1} date`}
                             selected={mt.start}
-                            onChange={(date) => {
-                              if (!date) return;
+                            startTime={mt.start}
+                            endTime={mt.end}
+                            onChange={(_date, newStart, newEnd) => {
+                              if (!newStart || !newEnd) return;
                               const newMidterms = [...midterms];
-                              newMidterms[i] = { start: date, end: new Date(date.getTime() + 60 * 60 * 1000) };
+                              newMidterms[i] = { start: newStart, end: newEnd };
                               setMidterms(newMidterms);
                             }}
                             allDay={false}
@@ -352,9 +363,11 @@ useEffect(() => {
                     <DateTimePicker
                       label="final exam date"
                       selected={finalExam?.start || null}
-                      onChange={(date) => {
-                        if (!date) return;
-                        setFinalExam({ start: date, end: new Date(date.getTime() + 2 * 60 * 60 * 1000) });
+                      startTime={finalExam?.start || undefined}
+                      endTime={finalExam?.end || undefined}
+                      onChange={(_date, newStart, newEnd) => {
+                        if (!newStart || !newEnd) return;
+                        setFinalExam({ start: newStart, end: newEnd });
                       }}
                       allDay={false}
                     />
@@ -372,6 +385,17 @@ useEffect(() => {
                           setColor={setColor}
                           label="select course colour"
                         />
+
+                        <div className="flex flex-col flex-1 ml-2">
+                          <label className="text-sm text-gray-400 mb-1 font-mp">credits</label>
+                          <input
+                            type="number"
+                            placeholder="2.00"
+                            value={credits ?? ""}
+                            onChange={(e) => setCredits(Number(e.target.value))}
+                            className="w-20 p-2 h-9 bg-zinc-800 text-white font-dm rounded-[0.5em] placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                          />
+                        </div>
                       </div>
 
                       <div className="flex justify-end mt-4">
@@ -381,11 +405,16 @@ useEffect(() => {
                           disabled={isSubmitting || isPdfLoading}
                           className="px-4 py-1 bg-white hover:bg-gray-100 disabled:bg-gray-300 disabled:cursor-not-allowed text-zinc-800 rounded-[0.50rem] font-dm text-sm transition-all duration-200 hover:scale-105 hover:shadow-md"
                         >
-                          {isSubmitting ? (isEditing ? "updating..." : "adding...") : (isEditing ? "update course" : "add course")}
+                          {isSubmitting
+                            ? isEditing
+                              ? "updating..."
+                              : "adding..."
+                            : isEditing
+                            ? "update course"
+                            : "add course"}
                         </button>
                       </div>
                     </div>
-
                   </div>
                 </Dialog.Panel>
               </Transition.Child>

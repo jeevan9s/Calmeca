@@ -30317,7 +30317,11 @@ function registerGoogleHandlers(mainWindow) {
           authWindow == null ? void 0 : authWindow.close();
           return;
         }
-        const oauth2Client = new google.auth.OAuth2(G_CLIENT_ID, G_CLIENT_SECRET, G_REDIRECT_URI);
+        const oauth2Client = new google.auth.OAuth2(
+          G_CLIENT_ID,
+          G_CLIENT_SECRET,
+          G_REDIRECT_URI
+        );
         authWindow.webContents.on("will-redirect", async (event, url) => {
           if (!url.startsWith(G_REDIRECT_URI)) return;
           event.preventDefault();
@@ -30352,7 +30356,9 @@ function registerGoogleHandlers(mainWindow) {
                 picture: data.picture
               }
             });
-            authWindow == null ? void 0 : authWindow.loadFile(path.join(__dirname$1, "..", "assets", "oauth-redirect.html"));
+            authWindow == null ? void 0 : authWindow.loadFile(
+              path.join(__dirname$1, "..", "assets", "oauth-redirect.html")
+            );
             setTimeout(() => {
               authWindow == null ? void 0 : authWindow.close();
               authWindow = null;
@@ -30428,15 +30434,12 @@ function registerGoogleHandlers(mainWindow) {
   });
   ipcMain.handle(
     "add-google-calendar-event",
-    async (_event, summary, startStr, endStr, allDay = false) => {
-      console.log("[googleHandlers] add-google-calendar-event", { summary, startStr, endStr, allDay });
+    async (_event, summary, startStr, endStr, allDay = false, recurrence = "none") => {
       const oauth2Client = await getOAuthClient();
       const calendar = google.calendar({ version: "v3", auth: oauth2Client });
-      if (!startStr) throw new Error("Missing start date");
       const startDate = new Date(startStr);
       if (isNaN(startDate.getTime())) throw new Error("Invalid start date");
       const endDate = endStr ? new Date(endStr) : allDay ? new Date(startDate.getTime() + 24 * 60 * 60 * 1e3) : new Date(startDate.getTime() + 60 * 60 * 1e3);
-      if (isNaN(endDate.getTime())) throw new Error("Invalid end date");
       try {
         const res = await calendar.events.list({
           calendarId: "primary",
@@ -30448,32 +30451,39 @@ function registerGoogleHandlers(mainWindow) {
         const existingEvents = res.data.items || [];
         for (const evt of existingEvents) {
           if (evt.summary === summary) {
-            console.log("[googleHandlers] Deleting existing event:", evt.id, evt.summary);
             await calendar.events.delete({ calendarId: "primary", eventId: evt.id });
           }
         }
       } catch (err) {
-        console.warn("[googleHandlers] Failed to check/delete existing events:", err);
+        console.warn("Failed to delete duplicate events:", err);
       }
       const event = { summary };
+      const localDate = (d) => d.toISOString().split("T")[0];
       if (allDay) {
-        event.start = { date: startDate.toISOString().split("T")[0] };
-        event.end = { date: endDate.toISOString().split("T")[0] };
+        event.start = { date: localDate(startDate) };
+        event.end = { date: localDate(endDate) };
       } else {
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        event.start = {
-          dateTime: startDate.toISOString(),
-          timeZone: tz
-        };
-        event.end = {
-          dateTime: endDate.toISOString(),
-          timeZone: tz
-        };
+        event.start = { dateTime: startDate.toISOString(), timeZone: tz };
+        event.end = { dateTime: endDate.toISOString(), timeZone: tz };
       }
-      console.log("[googleHandlers] Final event payload:", event);
-      await calendar.events.insert({ calendarId: "primary", requestBody: event });
-      console.log("[googleHandlers] Event inserted successfully");
-      return { success: true };
+      if (typeof recurrence === "string" && recurrence !== "none") {
+        let rrule = "";
+        if (recurrence === "daily") rrule = "RRULE:FREQ=DAILY";
+        else if (recurrence === "weekly") rrule = "RRULE:FREQ=WEEKLY";
+        else if (recurrence === "monthly") rrule = "RRULE:FREQ=MONTHLY";
+        else if (recurrence.startsWith("custom:")) {
+          const interval = parseInt(recurrence.split(":")[1]);
+          if (!isNaN(interval) && interval > 0) rrule = `RRULE:FREQ=DAILY;INTERVAL=${interval}`;
+        }
+        if (rrule) event.recurrence = [rrule];
+      }
+      try {
+        await calendar.events.insert({ calendarId: "primary", requestBody: event });
+        return { success: true };
+      } catch (err) {
+        return { success: false, error: err instanceof Error ? err.message : String(err) };
+      }
     }
   );
 }

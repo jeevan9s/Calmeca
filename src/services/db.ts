@@ -1,4 +1,5 @@
 import Dexie, { Table } from 'dexie';
+import { ReactNode } from 'react';
 
 export interface Course {
     id: string;
@@ -10,15 +11,19 @@ export interface Course {
     description?: string;
     color?: string;
     type?: CourseType;
+    icon?: ReactNode;
+    midterms?: { start: Date; end: Date }[];
     createdOn: Date;
     endsOn: Date;
     midtermDate?: Date;
+    credits?:  number;
     finalExamDate?: Date;
     archived?: boolean;
     updatedOn: Date;
     updatedFrom?: 'calendar' | 'assignment' | 'other';
     officeHours?: OfficeHour[];
     homepage?: CourseHomepage;
+    links?: { title: string; url: string }[];
 }
 
 export interface Resource {
@@ -55,12 +60,12 @@ export interface CourseHomepage {
     announcements?: string[];
 }
 
-export type CourseType = 'lecture-tutorial' | 'project-studio' | 'lab';
+export type CourseType = 'lecture' | 'studio' | 'lab';
 
 export const courseTypeLabels: Record<CourseType, string> = {
-    'lecture-tutorial': 'Lecture & Tutorial',
-    'project-studio': 'Project / Studio',
-    'lab': 'Lab Session',
+    'lecture': 'Lecture Based',
+    'studio': 'Studio Based',
+    'lab': 'Lab Based',
 };
 
 export interface Contact {
@@ -75,10 +80,11 @@ export interface Task {
     id: string;
     courseId: string;
     title: string;
-    type: 'default'| 'homework' | 'lab' | 'exam' | 'project' | 'report' | 'quiz';
+    type: 'default'| 'homework' | 'lab' | 'exam' | 'project task' | 'report' | 'quiz' | 'tutorial exercise' | 'custom' | 'problem set' ;
     deadline: Date;
     completed: boolean;
     color: string;
+    description?: string;
 }
 
 export interface CalendarEvent {

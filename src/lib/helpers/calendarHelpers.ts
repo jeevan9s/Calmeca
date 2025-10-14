@@ -6,7 +6,8 @@ export async function addCalendarEvent(
   start: Date | string,
   end: Date | string,
   type: "deadline" | "exam",
-  allDay: boolean = false
+  allDay: boolean = false,
+  recurrence: string = "none"
 ) {
   const startDate = typeof start === "string" ? new Date(start) : start;
   const endDate = typeof end === "string" ? new Date(end) : end;
@@ -18,32 +19,24 @@ export async function addCalendarEvent(
     end: endDate,
     type,
     allDay,
+    recurrence,
   };
   await db.calendarEvents.add(event);
 
-  try {
-    if (!window.electronAPI?.addGoogleCalendarEvent) return;
+  if (!window.electronAPI?.addGoogleCalendarEvent) return;
 
-    if (allDay) {
-      const startStr = startDate.toISOString().split("T")[0];
-      const endStr = new Date(endDate.getTime() + 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0];
+  const startStr = allDay
+    ? startDate.toISOString().split("T")[0]
+    : startDate.toISOString();
+  const endStr = allDay
+    ? new Date(endDate.getTime() + 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+    : endDate.toISOString();
 
-      console.log("[Google Calendar] Adding all-day event:", summary, startStr, endStr);
-      await window.electronAPI.addGoogleCalendarEvent(summary, startStr, endStr, true);
-    } else {
-      const timeZone = "America/Toronto"; 
-      console.log("[Google Calendar] Adding timed event:", summary, startDate, endDate);
-
-      await window.electronAPI.addGoogleCalendarEvent(
-        summary,
-        { dateTime: startDate.toISOString(), timeZone },
-        { dateTime: endDate.toISOString(), timeZone },
-        false
-      );
-    }
-  } catch (err) {
-    console.warn("Google Calendar sync failed", err);
-  }
+  await window.electronAPI.addGoogleCalendarEvent(
+    summary,
+    startStr,
+    endStr,
+    allDay,
+    recurrence
+  );
 }

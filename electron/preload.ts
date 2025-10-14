@@ -1,4 +1,5 @@
-import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron";
+import { contextBridge, shell, ipcRenderer, IpcRendererEvent } from "electron";
+
 
 const maximizedListeners = new Map<() => void, (event: IpcRendererEvent) => void>();
 const notMaximizedListeners = new Map<() => void, (event: IpcRendererEvent) => void>();
@@ -23,7 +24,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     summary: string,
     start: string,
     end: string,
-    allDay: boolean
+    allDay: boolean,
+    recurrence?: string
   ) =>
     ipcRenderer.invoke(
       "add-google-calendar-event",
@@ -31,7 +33,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
       start,
       end,
       allDay,
+      recurrence
     ),
+
+    shell: {
+    openExternal: (url: string) => shell.openExternal(url),
+  },
       
 
   readPDF: (filePath: string) => ipcRenderer.invoke("read-pdf", filePath),

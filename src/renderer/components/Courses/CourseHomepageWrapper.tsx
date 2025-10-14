@@ -14,5 +14,12 @@ export default function CourseHomepageWrapper() {
   }, [courseId]);
 
   if (!course) return <div>Course not found</div>;
-  return <CourseHomepage course={course} />;
+
+  return (
+    <CourseHomepage
+      course={course}
+      courseId={course.id}
+      onUpdateCourse={(updatedCourse) => setCourse(updatedCourse)}
+    />
+  );
 }

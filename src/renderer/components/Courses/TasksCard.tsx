@@ -1,0 +1,208 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { ScrollArea } from "@/components/scroll-area";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription
+} from "@/components/card";
+import { Button } from "@/components/button";
+import AddTaskDialog from "./addTaskDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/dialog";
+import { Trash2, Edit2 } from "lucide-react";
+import { getTasks, toggleTaskCompletion, deleteTask, clearTasks } from "@/services/core services/taskService";
+import { Task } from "@/services/db";
+import { differenceInCalendarDays, format } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/popover";
+import { Checkbox } from "@/components/checkbox";
+
+export default function TasksCard({ courseTitle, courseId }: { courseTitle: string; courseId: string }) {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+  const [filter, setFilter] = useState<"all" | "completed" | "pending" | "today" | "tomorrow">("all");
+
+  const fetchTasks = async () => {
+    setLoading(true);
+    try {
+      const fetchedTasks = await getTasks();
+      setTasks(fetchedTasks);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+    const interval = setInterval(fetchTasks, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleToggle = async (task: Task) => {
+    await toggleTaskCompletion(task.id);
+    fetchTasks();
+  };
+
+  const handleDelete = async (task: Task) => {
+    await deleteTask(task.id);
+    fetchTasks();
+  };
+
+  const handleClear = async () => {
+    await clearTasks();
+    fetchTasks();
+  };
+
+  const getDeadlineLabel = (task: Task) => {
+    if (!task.deadline) return "no date";
+    const now = new Date();
+    const deadline = new Date(task.deadline);
+    const diff = differenceInCalendarDays(deadline, now);
+    const timeStr = deadline.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const formattedDate = format(deadline, "EEE, MMM d");
+
+    if (diff === 0) return `today at ${timeStr}`;
+    if (diff === 1) return `tomorrow at ${timeStr}`;
+    return `${formattedDate} at ${timeStr}`;
+  };
+
+  const filteredTasks = tasks.filter((task) => {
+    if (filter === "completed") return task.completed;
+    if (filter === "pending") return !task.completed;
+    if (filter === "today") {
+      if (!task.deadline) return false;
+      return differenceInCalendarDays(new Date(task.deadline), new Date()) === 0;
+    }
+    if (filter === "tomorrow") {
+      if (!task.deadline) return false;
+      return differenceInCalendarDays(new Date(task.deadline), new Date()) === 1;
+    }
+    return true;
+  });
+
+  return (
+    <>
+      <motion.div whileHover={{ scale: 1.01, y: -1 }} transition={{ duration: 0.2 }} className="rounded-lg w-full">
+        <Card className="h-[42em] bg-[#0f0f10ff] w-full rounded-lg flex flex-col">
+          
+          <CardHeader className="flex flex-row items-left justify-between gap-2 flex-nowrap">
+                      <CardTitle className="font-nun">tasks</CardTitle>
+          <CardDescription className="text-white/50 font-dm">task organization</CardDescription>
+            <div className="relative w-full flex items-center h-10">
+              <div className="absolute left-0 flex items-center gap-2">
+                <Button
+                  className="flex items-center gap-2 sm:w-64 bg-zinc-800 rounded-xl text-white font-dm h-10 px-4 transition-transform duration-200 ease-in-out hover:scale-105 hover:shadow-lg hover:bg-zinc-700 hover:text-white focus:ring-2 focus:ring-zinc-500 focus:ring-opacity-50 active:scale-95"
+                  onClick={() => { setTaskToEdit(null); setIsDialogOpen(true); }}
+                >
+                  add task
+                </Button>
+                <Button
+                  className="bg-zinc-800 hover:bg-red-900 transition-transform duration-200 ease-in-out hover:scale-105 rounded-xl text-white font-dm h-10 px-3"
+                  onClick={handleClear}
+                >
+                  clear tasks
+                </Button>
+              </div>
+              <div className="absolute right-0">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button className="bg-zinc-800 rounded-xl text-white font-dm h-10 px-4 hover:bg-zinc-700">
+                      filter
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="bg-zinc-900 border-none p-2 rounded-xl w-56">
+                    <div className="flex flex-col gap-2">
+                      <Button variant={filter === "all" ? "default" : "outline"} className="bg-zinc-800 rounded-xl text-white font-dm w-full" onClick={() => setFilter("all")}>all</Button>
+                      <Button variant={filter === "completed" ? "default" : "outline"} className="bg-zinc-800 rounded-xl text-white font-dm w-full" onClick={() => setFilter("completed")}>completed</Button>
+                      <Button variant={filter === "pending" ? "default" : "outline"} className="bg-zinc-800 rounded-xl text-white font-dm w-full" onClick={() => setFilter("pending")}>pending</Button>
+                      <Button variant={filter === "today" ? "default" : "outline"} className="bg-zinc-800 rounded-xl text-white font-dm w-full" onClick={() => setFilter("today")}>today</Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="flex-1 p-2">
+            <ScrollArea className="h-full flex flex-col gap-2">
+              {loading ? (
+                <p className="text-neutral-400 text-sm">loading...</p>
+              ) : filteredTasks.length === 0 ? (
+                <p className="text-neutral-400 text-sm italic font-dm">no tasks yet</p>
+              ) : (
+                filteredTasks.map((task) => (
+                  <Dialog key={task.id}>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        checked={task.completed}
+                        onCheckedChange={() => handleToggle(task)}
+                      />
+                      <DialogTrigger asChild>
+                        <motion.div
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="flex-1 border border-zinc-700/50 p-2 rounded-xl hover:bg-zinc-800/50 cursor-pointer flex justify-between items-center"
+                        >
+                          <span className={` font-dm ${task.completed ? "line-through" : "text-white"}`}>
+                            {task.title}
+                          </span>
+                          <span className="text-xs text-gray-400 ml-2">{getDeadlineLabel(task)}</span>
+                        </motion.div>
+                      </DialogTrigger>
+                    </div>
+
+                    <DialogContent className="bg-zinc-900 border-none text-white rounded-[1em]">
+                      <DialogHeader>
+                        <DialogTitle className="text-lg font-nun leading-tight">{task.title}</DialogTitle>
+                        <DialogDescription className="text-neutral-400 text-sm font-dm">
+                          {task.deadline ? `due: ${getDeadlineLabel(task)}` : "no deadline set"}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="mt-4 space-y-2">
+                        {task.description && (
+                          <p className={`${task.completed ? "line-through " : "text-neutral-300"} text-sm`}>
+                            {task.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="mt-4 flex justify-end gap-2">
+                        <Button className="flex items-center rounded-xl gap-1 font-dm text-sm bg-zinc-700 hover:bg-zinc-600 transition-transform duration-200 ease-in-out hover:scale-105" onClick={() => { setTaskToEdit(task); setIsDialogOpen(true); }}>
+                          <Edit2 size={14} /> edit
+                        </Button>
+                        <Button className="flex items-center gap-1 rounded-xl font-dm text-sm bg-red-700 transition-transform duration-200 ease-in-out hover:scale-105 hover:shadow-lg hover:bg-red-900" onClick={() => handleDelete(task)}>
+                          <Trash2 size={14} /> delete
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                ))
+              )}
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      <AddTaskDialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        onTaskAdded={fetchTasks}
+        taskToEdit={taskToEdit ?? undefined}
+        courseId={taskToEdit?.courseId ?? courseId}
+      />
+    </>
+  );
+}

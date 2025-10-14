@@ -1,7 +1,11 @@
 import { ipcMain, BrowserWindow } from "electron";
 import path from "path";
 import { google } from "googleapis";
-import { clearSavedTokens, authenticateWithGoogle, getTokenPath } from "@/services/integrations-utils/google/googleAuth";
+import {
+  clearSavedTokens,
+  authenticateWithGoogle,
+  getTokenPath,
+} from "@/services/integrations-utils/google/googleAuth";
 import fs from "fs";
 import { fileURLToPath } from "url";
 
@@ -38,7 +42,6 @@ async function getOAuthClient() {
 export function registerGoogleHandlers(mainWindow: BrowserWindow) {
   win = mainWindow;
 
-  // ✅ GOOGLE LOGIN
   ipcMain.handle("start-google-login", async () => {
     return new Promise(async (resolve, reject) => {
       try {
@@ -73,7 +76,11 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
           return;
         }
 
-        const oauth2Client = new google.auth.OAuth2(G_CLIENT_ID, G_CLIENT_SECRET, G_REDIRECT_URI);
+        const oauth2Client = new google.auth.OAuth2(
+          G_CLIENT_ID,
+          G_CLIENT_SECRET,
+          G_REDIRECT_URI
+        );
 
         authWindow.webContents.on("will-redirect", async (event, url) => {
           if (!url.startsWith(G_REDIRECT_URI!)) return;
@@ -117,7 +124,9 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
               },
             });
 
-            authWindow?.loadFile(path.join(__dirname, "..", "assets", "oauth-redirect.html"));
+            authWindow?.loadFile(
+              path.join(__dirname, "..", "assets", "oauth-redirect.html")
+            );
             setTimeout(() => {
               authWindow?.close();
               authWindow = null;
@@ -170,7 +179,7 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
     }
   });
 
-  ipcMain.handle("fetch-google-calendar-events", async (_event, category?: string) => {
+    ipcMain.handle("fetch-google-calendar-events", async (_event, category?: string) => {
     const oauth2Client = await getOAuthClient();
     const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 
@@ -198,13 +207,17 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
 
   ipcMain.handle(
   "add-google-calendar-event",
-  async (_event, summary: string, startStr: string, endStr?: string, allDay = false) => {
-    console.log("[googleHandlers] add-google-calendar-event", { summary, startStr, endStr, allDay });
-
+  async (
+    _event,
+    summary: string,
+    startStr: string,
+    endStr?: string,
+    allDay = false,
+    recurrence: string = "none"
+  ) => {
     const oauth2Client = await getOAuthClient();
     const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 
-    if (!startStr) throw new Error("Missing start date");
     const startDate = new Date(startStr);
     if (isNaN(startDate.getTime())) throw new Error("Invalid start date");
 
@@ -213,8 +226,8 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
       : allDay
       ? new Date(startDate.getTime() + 24 * 60 * 60 * 1000)
       : new Date(startDate.getTime() + 60 * 60 * 1000);
-    if (isNaN(endDate.getTime())) throw new Error("Invalid end date");
 
+    // Delete duplicates
     try {
       const res = await calendar.events.list({
         calendarId: "primary",
@@ -227,36 +240,46 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
       const existingEvents = res.data.items || [];
       for (const evt of existingEvents) {
         if (evt.summary === summary) {
-          console.log("[googleHandlers] Deleting existing event:", evt.id, evt.summary);
           await calendar.events.delete({ calendarId: "primary", eventId: evt.id! });
         }
       }
     } catch (err) {
-      console.warn("[googleHandlers] Failed to check/delete existing events:", err);
+      console.warn("Failed to delete duplicate events:", err);
     }
 
     const event: any = { summary };
 
+    const localDate = (d: Date) => d.toISOString().split("T")[0];
+
     if (allDay) {
-      event.start = { date: startDate.toISOString().split("T")[0] };
-      event.end = { date: endDate.toISOString().split("T")[0] };
+      event.start = { date: localDate(startDate) };
+      event.end = { date: localDate(endDate) };
     } else {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      event.start = {
-        dateTime: startDate.toISOString(),
-        timeZone: tz,
-      };
-      event.end = {
-        dateTime: endDate.toISOString(),
-        timeZone: tz,
-      };
+      event.start = { dateTime: startDate.toISOString(), timeZone: tz };
+      event.end = { dateTime: endDate.toISOString(), timeZone: tz };
     }
 
-    console.log("[googleHandlers] Final event payload:", event);
-    await calendar.events.insert({ calendarId: "primary", requestBody: event });
+    // Recurrence
+    if (typeof recurrence === "string" && recurrence !== "none") {
+      let rrule = "";
+      if (recurrence === "daily") rrule = "RRULE:FREQ=DAILY";
+      else if (recurrence === "weekly") rrule = "RRULE:FREQ=WEEKLY";
+      else if (recurrence === "monthly") rrule = "RRULE:FREQ=MONTHLY";
+      else if (recurrence.startsWith("custom:")) {
+        const interval = parseInt(recurrence.split(":")[1]);
+        if (!isNaN(interval) && interval > 0) rrule = `RRULE:FREQ=DAILY;INTERVAL=${interval}`;
+      }
+      if (rrule) event.recurrence = [rrule];
+    }
 
-    console.log("[googleHandlers] Event inserted successfully");
-    return { success: true };
+    try {
+      await calendar.events.insert({ calendarId: "primary", requestBody: event });
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : String(err) };
+    }
   }
 );
+
 }

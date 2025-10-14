@@ -41,8 +41,8 @@ export default function CourseFormFields({
   setSelectedType,
 }: CourseFormFieldsProps) {
   const courseTypeOptions: CourseType[] = [
-    "lecture-tutorial",
-    "project-studio",
+    "lecture",
+    "studio",
     "lab",
   ];
 

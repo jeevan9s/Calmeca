@@ -1,5 +1,3 @@
-// Utility Service File
-// general utils to use across other service files / architecture 
 import { v4 as uuid } from 'uuid';
 import { db } from '../db';
 import { Table } from 'dexie';
@@ -30,14 +28,22 @@ export const getCourseColor = async (courseId: string): Promise<string> => {
 
 export type UpdateSource = 'calendar' | 'assignment' | 'task' | 'meeting' | 'other';
 
-export const updateTimestamp = async (table: keyof typeof db, id: string, updatedFrom?: UpdateSource): Promise<void> => {
+export const updateTimestamp = async (table: keyof typeof db, id: string | undefined, updatedFrom?: UpdateSource): Promise<void> => {
+    if (!id || typeof id !== "string") {
+        console.warn(`[updateTimestamp] Invalid key provided for table "${table}":`, id);
+        return;
+    }
     const tableRef = db[table] as Table<any, string>;
     const updateData: Partial<{ updatedOn: Date; updatedFrom?: string }> = { updatedOn: new Date() };
     if (updatedFrom) updateData.updatedFrom = updatedFrom;
     await tableRef.update(id, updateData);
 }
 
-export const updateCourseFromChild = async (courseId: string, updatedFrom: UpdateSource) => {
+export const updateCourseFromChild = async ( updatedFrom: UpdateSource, courseId?: string,) => {
+    if (!courseId) {
+        console.warn("[updateCourseFromChild] courseId is undefined");
+        return;
+    }
     await updateTimestamp('courses', courseId, updatedFrom);
 }
 
