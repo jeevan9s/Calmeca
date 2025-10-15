@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import FloatingActionButton from "../FloatingActionButton";
 import { Course, Task } from "@/services/db";
 import { motion } from "framer-motion";
 import { ScrollArea } from "@/components/scroll-area";
@@ -88,6 +89,12 @@ export default function CourseHomepage({
             </motion.div>
           </motion.div>
         </ScrollArea>
+        {/* FAB for course-specific quick add */}
+        <div className="pointer-events-none">
+          <div className="pointer-events-auto">
+            {course.id && <FloatingActionButton courseId={course.id} />}
+          </div>
+        </div>
       </Layout>
     </div>
   );

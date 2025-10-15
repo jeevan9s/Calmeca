@@ -1,3 +1,13 @@
+ipcMain.handle("delete-google-calendar-event", async (_event, eventId) => {
+  const oauth2Client = await getOAuthClient();
+  const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+  try {
+    await calendar.events.delete({ calendarId: "primary", eventId });
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
+  }
+});
 import { ipcMain, BrowserWindow } from "electron";
 import path from "path";
 import { google } from "googleapis";
@@ -215,6 +225,10 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
     allDay = false,
     recurrence: string = "none"
   ) => {
+    console.log("[GoogleCalendar] Adding event:", { summary, startStr, endStr, allDay, recurrence });
+    if (recurrence && recurrence !== "none") {
+      console.log("[GoogleCalendar] Recurrence received:", recurrence);
+    }
     const oauth2Client = await getOAuthClient();
     const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 
@@ -270,13 +284,16 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
         const interval = parseInt(recurrence.split(":")[1]);
         if (!isNaN(interval) && interval > 0) rrule = `RRULE:FREQ=DAILY;INTERVAL=${interval}`;
       }
+      console.log("[GoogleCalendar] RRULE generated:", rrule);
       if (rrule) event.recurrence = [rrule];
     }
 
     try {
-      await calendar.events.insert({ calendarId: "primary", requestBody: event });
+      const result = await calendar.events.insert({ calendarId: "primary", requestBody: event });
+      console.log("[GoogleCalendar] Event inserted successfully:", result.data);
       return { success: true };
     } catch (err) {
+      console.error("[GoogleCalendar] Failed to insert event:", err);
       return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
   }

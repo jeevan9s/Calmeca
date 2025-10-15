@@ -19,45 +19,31 @@ interface AddDatesDialogProps {
   onUpdateCourse?: (course: Course) => void;
   onClose: () => void;
   existingCourse: Course;
+  midterms: { start: Date | null; end: Date | null }[];
+  setMidterms: React.Dispatch<React.SetStateAction<{ start: Date | null; end: Date | null }[]>>;
+  finalExam: { start: Date | null; end: Date | null } | null;
+  setFinalExam: React.Dispatch<React.SetStateAction<{ start: Date | null; end: Date | null } | null>>;
+  endDate: Date | null;
+  setEndDate: React.Dispatch<React.SetStateAction<Date | null>>;
 }
+
 
 export default function AddDatesDialog({
   isOpen,
   onUpdateCourse,
   onClose,
   existingCourse,
+  midterms,
+  setMidterms,
+  finalExam,
+  setFinalExam,
+  endDate,
+  setEndDate,
 }: AddDatesDialogProps) {
-  const [endDate, setEndDate] = useState<Date | null>(null);
-  const [midterms, setMidterms] = useState<{ start: Date | null; end: Date | null }[]>([]);
-  const [finalExam, setFinalExam] = useState<{ start: Date | null; end: Date | null } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
 
-  useEffect(() => {
-    if (!existingCourse || !isOpen) return;
-
-    const defaultMidtermDuration = 2 * 60 * 60 * 1000; // 2 hours
-    const defaultFinalDuration = 3 * 60 * 60 * 1000; // 3 hours
-
-    setEndDate(existingCourse.endsOn ? new Date(existingCourse.endsOn) : null);
-
-    setMidterms(
-      existingCourse.midterms?.map((mt) => {
-        const start = mt.start ? new Date(mt.start) : null;
-        const end =
-          mt.end ?? (start ? new Date(start.getTime() + defaultMidtermDuration) : null);
-        return { start, end };
-      }) || []
-    );
-
-    if (existingCourse.finalExamDate) {
-      const start = new Date(existingCourse.finalExamDate);
-      const end = new Date(start.getTime() + defaultFinalDuration);
-      setFinalExam({ start, end });
-    } else {
-      setFinalExam(null);
-    }
-  }, [existingCourse?.id, isOpen]);
+  // No local state for midterms/finalExam/endDate; use props only
 
   const handlePdfUpload = async (file: File) => {
     setIsPdfLoading(true);
@@ -88,7 +74,7 @@ export default function AddDatesDialog({
     try {
       const courseData: Partial<Course> = {
         endsOn: endDate ?? undefined,
-        midterms: midterms.map((mt) => ({ start: mt.start ?? undefined, end: mt.end ?? undefined })),
+        midterms: midterms.filter(mt => mt.start && mt.end).map((mt) => ({ start: mt.start!, end: mt.end! })),
         finalExamDate: finalExam.start ?? undefined,
       };
 
@@ -203,7 +189,7 @@ export default function AddDatesDialog({
                             endTime={mt.end ?? undefined}
                             onChange={(_d, newStart, newEnd) => {
                               const newMidterms = [...midterms];
-                              newMidterms[i] = { start: newStart, end: newEnd };
+                              newMidterms[i] = { start: newStart ?? null, end: newEnd ?? null };
                               setMidterms(newMidterms);
                             }}
                             allDay={false}

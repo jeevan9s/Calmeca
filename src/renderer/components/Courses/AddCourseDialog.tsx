@@ -18,7 +18,14 @@ interface AddCourseDialogProps {
   onUpdateCourse?: (course: Course) => void;
   onClose: () => void;
   existingCourse?: Course | null;
+  midterms: { start: Date | null; end: Date | null }[];
+  setMidterms: React.Dispatch<React.SetStateAction<{ start: Date | null; end: Date | null }[]>>;
+  finalExam: { start: Date | null; end: Date | null } | null;
+  setFinalExam: React.Dispatch<React.SetStateAction<{ start: Date | null; end: Date | null } | null>>;
+  endDate: Date | null;
+  setEndDate: React.Dispatch<React.SetStateAction<Date | null>>;
 }
+
 
 export default function AddCourseDialog({
   isOpen,
@@ -26,15 +33,18 @@ export default function AddCourseDialog({
   onUpdateCourse,
   onClose,
   existingCourse,
+  midterms,
+  setMidterms,
+  finalExam,
+  setFinalExam,
+  endDate,
+  setEndDate,
 }: AddCourseDialogProps) {
   const [title, setTitle] = useState("");
   const [code, setCode] = useState("");
   const [professor, setProfessor] = useState("");
   const [profEmail, setProfEmail] = useState("");
   const [selectedType, setSelectedType] = useState<CourseType>("lecture");
-  const [endDate, setEndDate] = useState<Date | null>(null);
-  const [midterms, setMidterms] = useState<{ start: Date | null; end: Date | null }[]>([]);
-  const [finalExam, setFinalExam] = useState<{ start: Date | null; end: Date | null } | null>(null);
   const [color, setColor] = useState("#8B0000");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [description, setDescription] = useState("");
@@ -44,75 +54,100 @@ export default function AddCourseDialog({
   const [credits, setCredits] = useState<number | null>(null);
 
   const isEditing = !!existingCourse;
+  const isLoadingData = useRef(false);
+  const loadedCourseId = useRef<string | null>(null);
 
-  // 👈 Ref to ensure we only initialize once per course
-  const hasLoaded = useRef(false);
-  const prevCourseId = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (!isOpen || !existingCourse) return;
-
-    // Skip if we've already loaded this course
-    if (hasLoaded.current && prevCourseId.current === existingCourse.id) return;
-
-    const loadCourseData = async () => {
-      try {
-        const latest = await getCourseById(existingCourse.id);
-        if (!latest) return;
-
-        setTitle(latest.title || "");
-        setCode(latest.code || "");
-        setProfessor(latest.professor || "");
-        setProfEmail(latest.profEmail || "");
-        setSelectedType(latest.type ?? "lecture");
-        setEndDate(latest.endsOn ? new Date(latest.endsOn) : null);
-        setCourseIcon(typeof latest.icon === "string" ? latest.icon : null);
-        setCredits(latest.credits ?? null);
-        setDescription(latest.description || "");
-        setColor(latest.color || "#8B0000");
-
-        setMidterms(
-          (latest.midterms || []).map((mt) => ({
-            start: mt.start ? new Date(mt.start) : null,
-            end: mt.end ? new Date(mt.end) : null,
-          }))
-        );
-
-        setFinalExam(
-          latest.finalExamDate
-            ? { start: new Date(latest.finalExamDate), end: new Date(latest.finalExamDate) }
-            : null
-        );
-
-        // mark loaded
-        hasLoaded.current = true;
-        prevCourseId.current = existingCourse.id;
-      } catch (err) {
-        console.error("Error fetching latest course", err);
-      }
-    };
-
-    loadCourseData();
-  }, [isOpen, existingCourse]);
-
-  // Reset form when closing dialog or switching courses
   useEffect(() => {
     if (!isOpen) {
+      return;
+    }
+
+    if (existingCourse?.id) {
+      if (loadedCourseId.current === existingCourse.id && !isLoadingData.current) {
+        return;
+      }
+
+      isLoadingData.current = true;
+
+      const loadCourseData = async () => {
+        try {
+          const latest = await getCourseById(existingCourse.id);
+          if (!latest) return;
+
+          setTitle(latest.title || "");
+          setCode(latest.code || "");
+          setProfessor(latest.professor || "");
+          setProfEmail(latest.profEmail || "");
+          setSelectedType(latest.type ?? "lecture");
+          setCourseIcon(typeof latest.icon === "string" ? latest.icon : null);
+          setCredits(latest.credits ?? null);
+          setDescription(latest.description || "");
+          setColor(latest.color || "#8B0000");
+
+          // Always load both start and end for midterms
+          setMidterms(
+            (latest.midterms && latest.midterms.length > 0)
+              ? latest.midterms.map(mt => ({
+                  start: mt.start ? new Date(mt.start) : null,
+                  end: mt.end ? new Date(mt.end) : null,
+                }))
+              : [{ start: null, end: null }]
+          );
+          setFinalExam(
+            latest.finalExamDate && latest.finalExamEndDate
+              ? { start: new Date(latest.finalExamDate), end: new Date(latest.finalExamEndDate) }
+              : latest.finalExamDate
+                ? { start: new Date(latest.finalExamDate), end: new Date(latest.finalExamDate) }
+                : null
+          );
+          setEndDate(latest.endsOn ? new Date(latest.endsOn) : null);
+
+          loadedCourseId.current = existingCourse.id;
+        } catch (err) {
+          console.error("Error fetching latest course", err);
+        } finally {
+          isLoadingData.current = false;
+        }
+      };
+
+      loadCourseData();
+    } else {
       setTitle("");
       setCode("");
       setProfessor("");
       setProfEmail("");
       setSelectedType("lecture");
-      setEndDate(null);
-      setMidterms([]);
-      setFinalExam(null);
       setColor("#8B0000");
       setPdfFile(null);
       setDescription("");
       setCourseIcon(null);
       setCredits(null);
-      hasLoaded.current = false;
-      prevCourseId.current = null;
+      setMidterms([{ start: null, end: null }]);
+      setFinalExam(null);
+      setEndDate(null);
+      loadedCourseId.current = null;
+    }
+  }, [isOpen, existingCourse?.id]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      const timeoutId = setTimeout(() => {
+        setTitle("");
+        setCode("");
+        setProfessor("");
+        setProfEmail("");
+        setSelectedType("lecture");
+        setColor("#8B0000");
+        setPdfFile(null);
+        setDescription("");
+        setCourseIcon(null);
+        setCredits(null);
+        loadedCourseId.current = null;
+        isLoadingData.current = false;
+      }, 300);
+
+      return () => clearTimeout(timeoutId);
     }
   }, [isOpen]);
 
@@ -160,6 +195,7 @@ export default function AddCourseDialog({
           .filter((mt) => mt.start && mt.end)
           .map((mt) => ({ start: mt.start!, end: mt.end! })),
         finalExamDate: finalExam?.start ?? undefined,
+        finalExamEndDate: finalExam?.end ?? undefined,
         icon: courseIcon || null,
         credits: credits ?? 0,
       };
@@ -173,6 +209,10 @@ export default function AddCourseDialog({
       } else {
         const newCourseData = {
           ...courseData,
+          title: title || "",
+          code: code || "",
+          professor: professor || "",
+          endsOn: endDate || new Date(),
           homepage: { deadlines: [], tasks: [], resources: [], notes: "", announcements: [] },
           selectedType: selectedType!,
         };
@@ -180,14 +220,13 @@ export default function AddCourseDialog({
         onAddCourse?.(course);
       }
 
-      // Add calendar events
       const events: { summary: string; start: Date; end: Date; allDay?: boolean }[] = [];
 
       if (endDate) {
         events.push({
           summary: `${title} - Course End`,
           start: new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()),
-          end: new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() + 1),
+          end: new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()),
           allDay: true,
         });
       }
@@ -296,13 +335,13 @@ export default function AddCourseDialog({
                     />
 
                     <div className="flex flex-col gap-2">
-                      {midterms.map((mt, i) => (
+                      {(midterms || []).map((mt, i) => (
                         <div key={i} className="flex items-center gap-2">
                           <DateTimePicker
                             label={`midterm ${i + 1} date`}
-                            selected={mt.start}
-                            startTime={mt.start}
-                            endTime={mt.end}
+                            selected={mt.start || null}
+                            startTime={mt.start || undefined}
+                            endTime={mt.end || undefined}
                             onChange={(_date, newStart, newEnd) => {
                               if (!newStart || !newEnd) return;
                               const newMidterms = [...midterms];

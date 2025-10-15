@@ -1,12 +1,13 @@
 "use client";
 
-import { Fragment, useState, useEffect } from "react";
+import { Fragment, useState, useEffect, useRef } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { Input } from "@/components/input";
 import { Label } from "@/components/label";
 import { Checkbox } from "@/components/checkbox";
 import DateTimePicker from "./DatePickerComponent";
 import { createTask, updateTask } from "@/services/core services/taskService";
+import { addCalendarEvent } from "@/lib/helpers/calendarHelpers";
 import { AnimatePresence, motion } from "framer-motion";
 
 type CourseType =
@@ -58,6 +59,7 @@ export default function AddTaskDialog({
   courseId,
   taskToEdit,
 }: AddTaskDialogProps) {
+
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [deadline, setDeadline] = useState<Date | null>(null);
@@ -67,21 +69,26 @@ export default function AddTaskDialog({
   const [selectedType, setSelectedType] = useState<CourseType>("default");
   const [customType, setCustomType] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const loadedTaskId = useRef<string | null>(null);
 
   useEffect(() => {
-    if (taskToEdit) {
-      setTitle(taskToEdit.title);
+    if (!isOpen) return;
+
+    if (taskToEdit?.id) {
+      if (loadedTaskId.current === taskToEdit.id) return;
+      setTitle(taskToEdit.title || "");
       setSummary(taskToEdit.summary || "");
       setDeadline(taskToEdit.deadline ? new Date(taskToEdit.deadline) : null);
       setAllDay(taskToEdit.allDay || false);
       setRecurring(taskToEdit.recurring || false);
       setRecurrence(taskToEdit.recurrence || "none");
       setSelectedType(taskToEdit.type as CourseType || "default");
-      if (taskToEdit.type && !courseTypeOptions.includes(taskToEdit.type as CourseType)) {
-        setCustomType(taskToEdit.type);
-      } else {
-        setCustomType("");
-      }
+      setCustomType(
+        taskToEdit.type && !courseTypeOptions.includes(taskToEdit.type as CourseType)
+          ? taskToEdit.type
+          : ""
+      );
+      loadedTaskId.current = taskToEdit.id;
     } else {
       setTitle("");
       setSummary("");
@@ -91,8 +98,26 @@ export default function AddTaskDialog({
       setRecurrence("none");
       setSelectedType("default");
       setCustomType("");
+      loadedTaskId.current = null;
     }
-  }, [taskToEdit]);
+  }, [isOpen, taskToEdit?.id]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      const timeoutId = setTimeout(() => {
+        setTitle("");
+        setSummary("");
+        setDeadline(null);
+        setAllDay(false);
+        setRecurring(false);
+        setRecurrence("none");
+        setSelectedType("default");
+        setCustomType("");
+        loadedTaskId.current = null;
+      }, 300);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isOpen]);
 
   const isButtonDisabled = isSubmitting || !title.trim() || !deadline;
 
@@ -106,24 +131,35 @@ export default function AddTaskDialog({
       if (taskToEdit) {
         await updateTask(taskToEdit.id, {
           title: title.trim(),
-          summary: summary.trim(),
+          description: summary.trim(),
           deadline,
-          allDay,
-          recurring,
-          recurrence,
-          type: selectedType === "custom" ? customType.trim() || "custom" : selectedType,
+
+          type: selectedType === "custom" ? (customType.trim() as CourseType) || "custom" : selectedType,
         });
+        await addCalendarEvent(
+          title.trim(),
+          deadline,
+          deadline,
+          "deadline",
+          allDay,
+          recurrence
+        );
       } else {
         await createTask({
           courseId,
           title: title.trim(),
-          summary: summary.trim(),
+          description: summary.trim(),
           deadline,
-          allDay,
-          recurring,
-          recurrence,
-          type: selectedType === "custom" ? customType.trim() || "custom" : selectedType,
+          type: selectedType === "custom" ? (customType.trim() as CourseType) || "custom" : selectedType,
         });
+        await addCalendarEvent(
+          title.trim(),
+          deadline,
+          deadline,
+          "deadline",
+          allDay,
+          recurrence
+        );
       }
     } catch (err) {
       console.error(err);

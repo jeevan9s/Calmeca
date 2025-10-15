@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Course } from "@/services/db";
 import { Edit2 } from "lucide-react";
 import AddCourseDialog from "./AddCourseDialog";
@@ -13,9 +13,31 @@ interface CourseHeaderProps {
   onUpdateCourse: (updatedCourse: Course) => void;
 }
 
+
 export default function CourseHeader({ course, onUpdateCourse }: CourseHeaderProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isEditDateOpen, setIsEditDateOpen] = useState(false);
+
+  // Shared state for midterms, finalExam, endDate
+  const [midterms, setMidterms] = useState<{ start: Date | null; end: Date | null }[]>([]);
+  const [finalExam, setFinalExam] = useState<{ start: Date | null; end: Date | null } | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+
+  // Sync state with course prop
+  useEffect(() => {
+    setMidterms(
+      (course.midterms?.map((mt: { start: string | Date | null; end: string | Date | null }) => ({
+        start: mt.start ? new Date(mt.start) : null,
+        end: mt.end ? new Date(mt.end) : null,
+      })) || [])
+    );
+    setFinalExam(
+      course.finalExamDate
+        ? { start: new Date(course.finalExamDate), end: new Date(course.finalExamDate) }
+        : null
+    );
+    setEndDate(course.endsOn ? new Date(course.endsOn) : null);
+  }, [course.id]);
 
   const getCourseProgress = () => {
     const now = new Date();
@@ -131,9 +153,15 @@ export default function CourseHeader({ course, onUpdateCourse }: CourseHeaderPro
           onUpdateCourse(updatedCourse);
           handleCloseEdit();
         }}
+        midterms={midterms}
+        setMidterms={setMidterms}
+        finalExam={finalExam}
+        setFinalExam={setFinalExam}
+        endDate={endDate}
+        setEndDate={setEndDate}
       />
 
-            <AddDatesDialog
+      <AddDatesDialog
         isOpen={isEditDateOpen}
         onClose={handleCloseEditDate}
         existingCourse={course}
@@ -141,6 +169,12 @@ export default function CourseHeader({ course, onUpdateCourse }: CourseHeaderPro
           onUpdateCourse(updatedCourse);
           handleCloseEditDate();
         }}
+        midterms={midterms}
+        setMidterms={setMidterms}
+        finalExam={finalExam}
+        setFinalExam={setFinalExam}
+        endDate={endDate}
+        setEndDate={setEndDate}
       />
     </div>
   );

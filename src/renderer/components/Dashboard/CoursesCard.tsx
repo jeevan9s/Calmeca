@@ -40,15 +40,17 @@ export default function CoursesCard() {
           {isLoading ? (
             <p className="text-neutral-400 text-sm">loading...</p>
           ) : (
-            courses.map((course) => (
-              <MiniCourseCard
-                key={course.id}
-                name={course.title}
-                code={course.code}
-                color = {course.color}
-                course={course}
-              />
-            ))
+            courses
+              .filter(course => course.title && course.title.trim() !== "" && course.code && course.code.trim() !== "")
+              .map((course) => (
+                <MiniCourseCard
+                  key={course.id}
+                  name={course.title}
+                  code={course.code}
+                  color={course.color || "#8B0000"}
+                  course={course}
+                />
+              ))
           )}
         </CardContent>
         <CardFooter className="flex justify-end gap-2 pb-2 pr-2">

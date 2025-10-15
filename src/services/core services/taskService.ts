@@ -12,13 +12,13 @@ type TaskFilter = {
 
 // CREATE
 export const createTask = async (task: Omit<Task, 'id' | 'completed' | 'color'>) => {
-  const color = task.courseId ? await getCourseColor(task.courseId) : null;
+  const color = task.courseId ? await getCourseColor(task.courseId) : undefined;
 
   const newTask: Task = {
     ...task,
     id: generateId(),
     completed: false,
-    color,
+    color: color ?? '#000000',
   };
 
   await db.tasks.add(newTask);
@@ -26,13 +26,15 @@ export const createTask = async (task: Omit<Task, 'id' | 'completed' | 'color'>)
   if (newTask.deadline) {
     await addEvent({
       title: newTask.title,
-      date: newTask.deadline,
+      start: newTask.deadline,
+      end: newTask.deadline,
       source: 'task',
       sourceId: newTask.id,
+      summary: newTask.title,
     });
   }
 
-  if (task.courseId) await updateCourseFromChild(task.courseId, 'task');
+  if (task.courseId) await updateCourseFromChild('task', task.courseId);
 
   return newTask;
 };
@@ -87,12 +89,14 @@ export const updateTask = async (id: string, updates: Partial<Task>): Promise<vo
   const updatedTask = await db.tasks.get(id);
   if (!updatedTask) return;
 
-  await updateCourseFromChild(updatedTask.courseId, 'task');
+  await updateCourseFromChild('task', updatedTask.courseId);
 
   // Update calendar event if title or deadline changed
   await updateEvent(updatedTask.id, {
     title: updatedTask.title,
-    date: updatedTask.deadline,
+    start: updatedTask.deadline,
+    end: updatedTask.deadline,
+    summary: updatedTask.title,
   });
 };
 
@@ -103,7 +107,11 @@ export const deleteTask = async (id: string) => {
 
   await db.tasks.delete(id);
   await deleteEvent(task.id);
-  await updateCourseFromChild(task.courseId, 'task');
+  if (task.googleCalendarEventId) {
+    const { deleteGoogleCalendarEvent } = await import("@/lib/helpers/calendarHelpers");
+    await deleteGoogleCalendarEvent(task.googleCalendarEventId);
+  }
+  await updateCourseFromChild('task', task.courseId);
 };
 
 // COMPLETION TOGGLE

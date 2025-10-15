@@ -3,6 +3,7 @@ import { IpcRendererEvent } from "electron";
 declare global {
   interface Window {
     electronAPI: {
+      deleteGoogleCalendarEvent?: (eventId: string) => Promise<any>;
       minimize: () => void;
       maximize: () => void;
       restore: () => void;

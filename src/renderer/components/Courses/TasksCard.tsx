@@ -97,7 +97,7 @@ export default function TasksCard({ courseTitle, courseId }: { courseTitle: stri
   return (
     <>
       <motion.div whileHover={{ scale: 1.01, y: -1 }} transition={{ duration: 0.2 }} className="rounded-lg w-full">
-        <Card className="h-[42em] bg-[#0f0f10ff] w-full rounded-lg flex flex-col">
+        <Card className="h-[36em] bg-[#0f0f10ff] w-full rounded-lg flex flex-col">
           
           <CardHeader className="flex flex-row items-left justify-between gap-2 flex-nowrap">
                       <CardTitle className="font-nun">tasks</CardTitle>

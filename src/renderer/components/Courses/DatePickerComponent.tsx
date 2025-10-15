@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronDownIcon } from "lucide-react";
 import { Button } from "@/components/button";
 import { Calendar } from "@/components/calendar";
@@ -26,8 +26,19 @@ export default function DateTimePicker({
   label,
   allDay = false,
 }: DateTimePickerProps) {
-  const [start, setStart] = useState(startTime || selected || new Date());
-  const [end, setEnd] = useState(endTime || new Date((startTime || selected || new Date()).getTime() + 60 * 60 * 1000));
+  const [start, setStart] = useState<Date>(startTime || selected || new Date());
+  const [end, setEnd] = useState<Date>(
+    endTime || ((startTime ?? selected)
+      ? new Date(((startTime ?? selected)?.getTime() ?? Date.now()) + 60 * 60 * 1000)
+      : new Date(Date.now() + 60 * 60 * 1000))
+  );
+
+  // Sync with parent changes
+  useEffect(() => {
+    if (selected) setStart(selected);
+    if (startTime) setStart(startTime);
+    if (endTime) setEnd(endTime);
+  }, [selected, startTime, endTime]);
   const [open, setOpen] = useState(false);
 
   const mergeDateWithTime = (date: Date, hours: number, minutes: number) => {

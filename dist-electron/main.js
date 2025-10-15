@@ -30264,6 +30264,16 @@ async function acquireTokenByCode(authCode) {
   saveTokens(result);
   return result;
 }
+ipcMain.handle("delete-google-calendar-event", async (_event, eventId) => {
+  const oauth2Client = await getOAuthClient();
+  const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+  try {
+    await calendar.events.delete({ calendarId: "primary", eventId });
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
+  }
+});
 const __filename$1 = fileURLToPath(import.meta.url);
 const __dirname$1 = path.dirname(__filename$1);
 let win$2 = null;
@@ -30435,6 +30445,10 @@ function registerGoogleHandlers(mainWindow) {
   ipcMain.handle(
     "add-google-calendar-event",
     async (_event, summary, startStr, endStr, allDay = false, recurrence = "none") => {
+      console.log("[GoogleCalendar] Adding event:", { summary, startStr, endStr, allDay, recurrence });
+      if (recurrence && recurrence !== "none") {
+        console.log("[GoogleCalendar] Recurrence received:", recurrence);
+      }
       const oauth2Client = await getOAuthClient();
       const calendar = google.calendar({ version: "v3", auth: oauth2Client });
       const startDate = new Date(startStr);
@@ -30476,12 +30490,15 @@ function registerGoogleHandlers(mainWindow) {
           const interval = parseInt(recurrence.split(":")[1]);
           if (!isNaN(interval) && interval > 0) rrule = `RRULE:FREQ=DAILY;INTERVAL=${interval}`;
         }
+        console.log("[GoogleCalendar] RRULE generated:", rrule);
         if (rrule) event.recurrence = [rrule];
       }
       try {
-        await calendar.events.insert({ calendarId: "primary", requestBody: event });
+        const result = await calendar.events.insert({ calendarId: "primary", requestBody: event });
+        console.log("[GoogleCalendar] Event inserted successfully:", result.data);
         return { success: true };
       } catch (err) {
+        console.error("[GoogleCalendar] Failed to insert event:", err);
         return { success: false, error: err instanceof Error ? err.message : String(err) };
       }
     }

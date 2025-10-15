@@ -6,6 +6,7 @@ const notMaximizedListeners = new Map<() => void, (event: IpcRendererEvent) => v
 const loginSuccessListeners = new Map<(data: any) => void, (event: IpcRendererEvent, data: any) => void>();
 
 contextBridge.exposeInMainWorld("electronAPI", {
+  deleteGoogleCalendarEvent: (eventId: string) => ipcRenderer.invoke("delete-google-calendar-event", eventId),
   minimize: () => ipcRenderer.send("minimize"),
   maximize: () => ipcRenderer.send("maximize"),
   restore: () => ipcRenderer.send("restore"),

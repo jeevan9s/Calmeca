@@ -4,6 +4,7 @@ const maximizedListeners = /* @__PURE__ */ new Map();
 const notMaximizedListeners = /* @__PURE__ */ new Map();
 const loginSuccessListeners = /* @__PURE__ */ new Map();
 electron.contextBridge.exposeInMainWorld("electronAPI", {
+  deleteGoogleCalendarEvent: (eventId) => electron.ipcRenderer.invoke("delete-google-calendar-event", eventId),
   minimize: () => electron.ipcRenderer.send("minimize"),
   maximize: () => electron.ipcRenderer.send("maximize"),
   restore: () => electron.ipcRenderer.send("restore"),

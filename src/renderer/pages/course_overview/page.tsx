@@ -11,7 +11,7 @@ import { Input } from "@/components/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/select";
 import { toast } from "sonner";
 
-export default function CourseOverviewPage() {
+function CourseOverviewPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
@@ -19,6 +19,10 @@ export default function CourseOverviewPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("");
+
+  const [midterms, setMidterms] = useState<{ start: Date | null; end: Date | null }[]>([]);
+  const [finalExam, setFinalExam] = useState<{ start: Date | null; end: Date | null } | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
 
   useEffect(() => {
     const loadCourses = async () => {
@@ -49,6 +53,21 @@ export default function CourseOverviewPage() {
 
   const handleEditCourse = (course: Course) => {
     setEditingCourse(course);
+    setMidterms(
+      (course.midterms && course.midterms.length > 0)
+        ? course.midterms.map(mt => ({
+            start: mt.start ? new Date(mt.start) : null,
+            end: mt.end ? new Date(mt.end) : null,
+          }))
+        : [{ start: null, end: null }]
+    );
+    // If you ever add a finalExamEndDate, use it here. For now, use finalExamDate for both.
+    setFinalExam(
+      course.finalExamDate
+        ? { start: new Date(course.finalExamDate), end: course.finalExamDate ? new Date(course.finalExamDate) : null }
+        : null
+    );
+    setEndDate(course.endsOn ? new Date(course.endsOn) : null);
     setIsDialogOpen(true);
   };
 
@@ -65,15 +84,25 @@ export default function CourseOverviewPage() {
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setEditingCourse(null);
+    setMidterms([]);
+    setFinalExam(null);
+    setEndDate(null);
   };
 
   const handleAddCourseClick = () => {
     setEditingCourse(null);
+    setMidterms([{ start: null, end: null }]); // Show one midterm field by default
+    setFinalExam(null);
+    setEndDate(null);
     setIsDialogOpen(true);
   };
 
   const filteredCourses = courses
-    .filter(c => c.title.toLowerCase().includes(search.toLowerCase()))
+    .filter(c =>
+      c.title && c.title.trim() !== "" &&
+      c.code && c.code.trim() !== "" &&
+      c.title.toLowerCase().includes(search.toLowerCase())
+    )
     .sort((a, b) => {
       if (sort === "alpha") return a.title.localeCompare(b.title);
       if (sort === "newest") return new Date(b.createdOn).getTime() - new Date(a.createdOn).getTime();
@@ -193,8 +222,16 @@ export default function CourseOverviewPage() {
           onUpdateCourse={handleUpdateCourse}
           onClose={handleCloseDialog}
           existingCourse={editingCourse}
+          midterms={midterms}
+          setMidterms={setMidterms}
+          finalExam={finalExam}
+          setFinalExam={setFinalExam}
+          endDate={endDate}
+          setEndDate={setEndDate}
         />
       </Layout>
     </div>
   );
 }
+
+export default CourseOverviewPage;

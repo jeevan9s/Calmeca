@@ -19,6 +19,7 @@ import {
 } from "@/components/dialog";
 import { motion } from "framer-motion";
 import { ScrollArea } from "@/components/scroll-area";
+import { getAllCourses } from "@/services/core services/courseService";
 
 const formatEventDate = (start: string | Date) => {
   const startDate = start instanceof Date ? start : new Date(start);
@@ -48,17 +49,31 @@ export default function UpcomingExamsCard() {
   useEffect(() => {
     const loadEvents = async () => {
       try {
-        const fetched: CalendarEvent[] = await (window as any).electronAPI.fetchGoogleCalendarEvents();
+        const [fetched, courses] = await Promise.all([
+          (window as any).electronAPI.fetchGoogleCalendarEvents(),
+          getAllCourses(),
+        ]);
         if (!fetched || fetched.length === 0) {
           setEvents([]);
           return;
         }
         const keywordRegex = /(exam|midterm)/i;
-        const upcoming = fetched
-          .filter(ev => keywordRegex.test(ev.summary))
-          .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
-          .slice(0, 2);
-        setEvents(upcoming);
+        // Group by course (if possible by sourceId or summary match)
+        const grouped: Record<string, CalendarEvent[]> = {};
+        for (const ev of fetched.filter(ev => keywordRegex.test(ev.summary))) {
+          // Try to group by sourceId (courseId), fallback to summary
+          const courseId = ev.sourceId || courses.find(c => ev.summary?.toLowerCase().includes(c.title?.toLowerCase()))?.id || "other";
+          if (!grouped[courseId]) grouped[courseId] = [];
+          grouped[courseId].push(ev);
+        }
+        // For each course, pick soonest event
+        const soonestByCourse: CalendarEvent[] = [];
+        for (const courseId in grouped) {
+          const soonest = grouped[courseId].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())[0];
+          soonestByCourse.push(soonest);
+        }
+        soonestByCourse.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+        setEvents(soonestByCourse);
       } catch {
         setEvents([]);
       } finally {

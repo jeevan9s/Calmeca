@@ -1,6 +1,14 @@
 import Dexie, { Table } from 'dexie';
 import { ReactNode } from 'react';
 
+
+export interface Resource {
+    id: string;
+    title: string;
+    link: string;
+    type?: "pdf" | "video" | "link" | "other";
+}
+
 export interface Course {
     id: string;
     title: string;
@@ -16,46 +24,15 @@ export interface Course {
     createdOn: Date;
     endsOn: Date;
     midtermDate?: Date;
-    credits?:  number;
+    credits?: number;
     finalExamDate?: Date;
+    finalExamEndDate?: Date;
     archived?: boolean;
     updatedOn: Date;
     updatedFrom?: 'calendar' | 'assignment' | 'other';
     officeHours?: OfficeHour[];
-    homepage?: CourseHomepage;
+    // homepage?: CourseHomepage; // TODO: Define CourseHomepage interface
     links?: { title: string; url: string }[];
-}
-
-export interface Resource {
-    id: string;
-    title: string;
-    link: string;
-    type?: "pdf" | "video" | "link" | "other";
-}
-
-export interface Deadline {
-    id: string;
-    courseId: string;
-    title: string;
-    description?: string;
-    type?: 'assignment' | 'homework' | 'lab' | 'exam' | 'project' | 'quiz' | 'meeting' | 'other';
-    dueDate?: Date;
-    startDate?: Date;
-    endDate?: Date;
-    recurrence?: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'custom';
-    customIntervalDays?: number;
-    nextOccurrence?: Date;
-    completed?: boolean;
-    progress?: number;
-    color?: string;
-    createdOn: Date;
-    updatedOn: Date;
-}
-
-export interface CourseHomepage {
-    deadlines: Deadline[];
-    tasks: Task[];
-    resources: Resource[];
     notes?: string;
     announcements?: string[];
 }
@@ -85,10 +62,12 @@ export interface Task {
     completed: boolean;
     color: string;
     description?: string;
+    googleCalendarEventId?: string;
 }
 
 export interface CalendarEvent {
     id: string;
+    googleCalendarEventId?: string;
     title?: string;
     description?: string;
     location?: string;
@@ -123,7 +102,7 @@ export class CalmecaDB extends Dexie {
     tasks!: Table<Task, string>;
     calendarEvents!: Table<CalendarEvent, string>;
     microsoftFiles!: Table<MicrosoftFile, string>;
-    courseItems!: Table<Deadline, string>;
+    // courseItems!: Table<Deadline, string>; // TODO: Define Deadline interface
 
     constructor() {
         super('CalmecaDB');
@@ -131,7 +110,7 @@ export class CalmecaDB extends Dexie {
             courses: 'id, title, type, color, archived, updatedOn, updatedFrom, endsOn, professor, courseEmail, profEmail, code, midtermDate, finalExamDate',
             tasks: 'id, title, courseId, type, deadline, completed, color',
             calendarEvents: 'id, title, start, end, type, source, sourceId, color',
-            courseItems: 'id, courseId, title, type, dueDate, startDate, endDate, recurrence, nextOccurrence, completed'
+            // courseItems: 'id, courseId, title, type, dueDate, startDate, endDate, recurrence, nextOccurrence, completed'
         });
     }
 }

@@ -60,25 +60,33 @@ export default function UpcomingCourseEventsCard({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let intervalId: NodeJS.Timeout;
     const fetchEvents = async () => {
       setLoading(true);
-      const now = new Date();
-      const future = new Date();
-      future.setDate(future.getDate() + upcomingDays);
-
-      const allEvents = await db.calendarEvents.where("start").between(now, future).toArray();
-
-      const filtered = allEvents
-        .filter((e) => e.summary.toLowerCase().includes(courseTitle.toLowerCase()))
-        .filter((e) => KEYWORDS.some((k) => e.summary.toLowerCase().includes(k)));
-
-      filtered.sort((a, b) => a.start.getTime() - b.start.getTime());
-
-      setEvents(filtered);
+      try {
+        const allEvents = await window.electronAPI.fetchGoogleCalendarEvents();
+        const now = new Date();
+        const future = new Date();
+        future.setDate(future.getDate() + upcomingDays);
+        const filtered = allEvents
+          .filter((e: any) => {
+            const start = new Date(e.start);
+            return (
+              start >= now && start <= future &&
+              e.summary && e.summary.toLowerCase().includes(courseTitle.toLowerCase()) &&
+              KEYWORDS.some((k) => e.summary.toLowerCase().includes(k))
+            );
+          })
+          .sort((a: any, b: any) => new Date(a.start).getTime() - new Date(b.start).getTime());
+        setEvents(filtered);
+      } catch (err) {
+        setEvents([]);
+      }
       setLoading(false);
     };
-
     fetchEvents();
+    intervalId = setInterval(fetchEvents, 30000); // refresh every 30 seconds
+    return () => clearInterval(intervalId);
   }, [courseTitle, upcomingDays]);
 
   return (
