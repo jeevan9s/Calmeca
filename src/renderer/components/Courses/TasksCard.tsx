@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ScrollArea } from "@/components/scroll-area";
 import {
@@ -22,28 +23,47 @@ import {
 } from "@/components/dialog";
 import { Trash2, Edit2 } from "lucide-react";
 import { getTasks, toggleTaskCompletion, deleteTask, clearTasks } from "@/services/core services/taskService";
-import { Task } from "@/services/db";
+import { Task, SubTask } from "@/services/db";
 import { differenceInCalendarDays, format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/popover";
 import { Checkbox } from "@/components/checkbox";
+import SubtaskComponent from "../SubtaskComponent";
+import { getSubTasksByTask } from "@/services/core services/subtaskService";
 
 export default function TasksCard({ courseTitle, courseId }: { courseTitle: string; courseId: string }) {
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [filter, setFilter] = useState<"all" | "completed" | "pending" | "today" | "tomorrow">("all");
+  const [taskSubtasks, setTaskSubtasks] = useState<Record<string, SubTask[]>>({});
 
   const fetchTasks = async () => {
     setLoading(true);
     try {
       const fetchedTasks = await getTasks();
       setTasks(fetchedTasks);
+      
+      // Load subtasks for each task
+      const subtasksMap: Record<string, SubTask[]> = {};
+      for (const task of fetchedTasks) {
+        const subtasks = await getSubTasksByTask(task.id);
+        subtasksMap[task.id] = subtasks;
+      }
+      setTaskSubtasks(subtasksMap);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubtasksChange = (taskId: string, subtasks: SubTask[]) => {
+    setTaskSubtasks(prev => ({
+      ...prev,
+      [taskId]: subtasks
+    }));
   };
 
   useEffect(() => {
@@ -150,18 +170,27 @@ export default function TasksCard({ courseTitle, courseId }: { courseTitle: stri
                         checked={task.completed}
                         onCheckedChange={() => handleToggle(task)}
                       />
+                      <motion.div
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex-1 border border-zinc-700/50 p-2 rounded-xl hover:bg-zinc-800/50 cursor-pointer flex justify-between items-center"
+                        onClick={() => navigate(`/tasks/${task.id}`)}
+                      >
+                        <span className={` font-dm ${task.completed ? "line-through" : "text-white"}`}>
+                          {task.title}
+                        </span>
+                        <span className="text-xs text-gray-400 ml-2">{getDeadlineLabel(task)}</span>
+                      </motion.div>
                       <DialogTrigger asChild>
-                        <motion.div
-                          initial={{ opacity: 0, y: 5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="flex-1 border border-zinc-700/50 p-2 rounded-xl hover:bg-zinc-800/50 cursor-pointer flex justify-between items-center"
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="bg-zinc-800 border-zinc-600 text-white hover:bg-zinc-700 rounded-lg px-2 py-1 text-xs"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <span className={` font-dm ${task.completed ? "line-through" : "text-white"}`}>
-                            {task.title}
-                          </span>
-                          <span className="text-xs text-gray-400 ml-2">{getDeadlineLabel(task)}</span>
-                        </motion.div>
+                          •••
+                        </Button>
                       </DialogTrigger>
                     </div>
 
@@ -178,14 +207,28 @@ export default function TasksCard({ courseTitle, courseId }: { courseTitle: stri
                             {task.description}
                           </p>
                         )}
+                        <SubtaskComponent
+                          taskId={task.id}
+                          courseId={task.courseId}
+                          subtasks={taskSubtasks[task.id] || []}
+                          onSubtasksChange={(subtasks) => handleSubtasksChange(task.id, subtasks)}
+                        />
                       </div>
-                      <div className="mt-4 flex justify-end gap-2">
-                        <Button className="flex items-center rounded-xl gap-1 font-dm text-sm bg-zinc-700 hover:bg-zinc-600 transition-transform duration-200 ease-in-out hover:scale-105" onClick={() => { setTaskToEdit(task); setIsDialogOpen(true); }}>
-                          <Edit2 size={14} /> edit
+                      <div className="mt-4 flex justify-between gap-2">
+                        <Button 
+                          className="flex items-center rounded-xl gap-1 font-dm text-sm bg-blue-700 hover:bg-blue-600 transition-transform duration-200 ease-in-out hover:scale-105" 
+                          onClick={() => navigate(`/tasks/${task.id}`)}
+                        >
+                          View Full Task
                         </Button>
-                        <Button className="flex items-center gap-1 rounded-xl font-dm text-sm bg-red-700 transition-transform duration-200 ease-in-out hover:scale-105 hover:shadow-lg hover:bg-red-900" onClick={() => handleDelete(task)}>
-                          <Trash2 size={14} /> delete
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button className="flex items-center rounded-xl gap-1 font-dm text-sm bg-zinc-700 hover:bg-zinc-600 transition-transform duration-200 ease-in-out hover:scale-105" onClick={() => { setTaskToEdit(task); setIsDialogOpen(true); }}>
+                            <Edit2 size={14} /> edit
+                          </Button>
+                          <Button className="flex items-center gap-1 rounded-xl font-dm text-sm bg-red-700 transition-transform duration-200 ease-in-out hover:scale-105 hover:shadow-lg hover:bg-red-900" onClick={() => handleDelete(task)}>
+                            <Trash2 size={14} /> delete
+                          </Button>
+                        </div>
                       </div>
                     </DialogContent>
                   </Dialog>

@@ -289,7 +289,7 @@ export default function AddCourseDialog({
                 <Dialog.Panel className="w-full max-w-md transform rounded-xl bg-neutral-900  p-6 text-left shadow-xl transition-all">
                   <div className="flex items-center justify-between">
                     <Dialog.Title className="text-lg text-white font-nun font-semibold">
-                      {isEditing ? "Edit Course" : "Add Course"}
+                      {isEditing ? "edit an existing course" : "add a new course"}
                     </Dialog.Title>
                     <div className="flex gap-2 items-center">
                       <IconPicker value={courseIcon as any} onValueChange={setCourseIcon} />

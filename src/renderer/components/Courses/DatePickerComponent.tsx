@@ -33,7 +33,6 @@ export default function DateTimePicker({
       : new Date(Date.now() + 60 * 60 * 1000))
   );
 
-  // Sync with parent changes
   useEffect(() => {
     if (selected) setStart(selected);
     if (startTime) setStart(startTime);

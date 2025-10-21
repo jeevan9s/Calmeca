@@ -62,7 +62,19 @@ export interface Task {
     completed: boolean;
     color: string;
     description?: string;
+    notes?: string;
     googleCalendarEventId?: string;
+}
+
+export interface SubTask {
+    id: string;
+    title: string;
+    taskId: string;
+    courseId: string;
+    deadline?: Date;
+    completed: boolean;
+    color?: string;
+    description?: string;
 }
 
 export interface CalendarEvent {
@@ -89,6 +101,8 @@ export interface MicrosoftFile {
     lastModified: Date;
 }
 
+
+
 export interface OfficeHour {
     days?: string[];
     startTime?: string;
@@ -102,14 +116,16 @@ export class CalmecaDB extends Dexie {
     tasks!: Table<Task, string>;
     calendarEvents!: Table<CalendarEvent, string>;
     microsoftFiles!: Table<MicrosoftFile, string>;
+    subtasks!: Table<SubTask, string>;
     // courseItems!: Table<Deadline, string>; // TODO: Define Deadline interface
 
     constructor() {
         super('CalmecaDB');
-        this.version(2).stores({
+        this.version(4).stores({
             courses: 'id, title, type, color, archived, updatedOn, updatedFrom, endsOn, professor, courseEmail, profEmail, code, midtermDate, finalExamDate',
-            tasks: 'id, title, courseId, type, deadline, completed, color',
+            tasks: 'id, title, courseId, type, deadline, completed, color, notes',
             calendarEvents: 'id, title, start, end, type, source, sourceId, color',
+            subtasks: 'id, title, taskId, courseId, deadline, completed, color',
             // courseItems: 'id, courseId, title, type, dueDate, startDate, endDate, recurrence, nextOccurrence, completed'
         });
     }

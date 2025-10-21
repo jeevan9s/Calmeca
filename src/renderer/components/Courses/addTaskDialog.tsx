@@ -194,6 +194,8 @@ export default function AddTaskDialog({
     }
   };
 
+ 
+
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -210,7 +212,7 @@ export default function AddTaskDialog({
             >
               <Dialog.Panel className="w-full max-w-md transform rounded-xl bg-neutral-900 p-6 text-left shadow-xl transition-all">
                 <Dialog.Title className="text-lg text-white font-nun font-semibold">
-                  {taskToEdit ? "edit task" : "add task"}
+                  {taskToEdit ? "edit an existing task" : "add a new task"}
                 </Dialog.Title>
                 <form onSubmit={handleSubmit} onKeyPress={handleKeyPress}>
                   <div className="mt-4 space-y-4">

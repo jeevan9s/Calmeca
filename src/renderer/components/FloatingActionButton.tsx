@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { Plus } from "react-feather";
 import { useState } from "react";
-import QuickAddDialog from "./QuickAddDialog";
+import QuickActionDialog from "./QuickActionDialog";
 
 export interface FloatingActionButtonProps {
   courseId?: string;
@@ -30,7 +30,7 @@ export default function FloatingActionButton({ courseId }: FloatingActionButtonP
           <Plus className="w-6 h-6 text-black" />
         </motion.div>
       </motion.button>
-      <QuickAddDialog open={open} onClose={() => setOpen(false)} courseId={courseId} />
+      <QuickActionDialog open={open} onClose={() => setOpen(false)} courseId={courseId} />
     </>
   );
 }

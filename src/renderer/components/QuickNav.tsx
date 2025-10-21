@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, easeInOut } from 'framer-motion'
 import  '@/renderer/styles/quicknav.css'
-import { ChevronRight, X } from 'react-feather';
+import { ChevronRight, X, BookOpen, Home, Calendar, Book } from 'react-feather';
 
 type QuickNavProps = {
   isQuickNavOpen: boolean;
@@ -9,6 +10,7 @@ type QuickNavProps = {
 };
 
 export default function QuickNav({ isQuickNavOpen, setIsQuickNavOpen }: QuickNavProps) {
+  const navigate = useNavigate();
   const [windowWidth, setWindowWidth] = useState(window.innerWidth)
   const [windowHeight, setWindowHeight] = useState(window.innerHeight)
 
@@ -72,6 +74,11 @@ if (windowHeight <= 400) {
   height = '8rem'
 }
 
+  const handleNavigate = (path: string) => {
+    navigate(path);
+    setIsQuickNavOpen(false);
+  };
+
   return (
 <motion.div
   id="quick-nav-panel"
@@ -82,13 +89,58 @@ if (windowHeight <= 400) {
   className="fixed top-12 right-4 z-50 rounded-2xl bg-[#18181BF2] p-4"
   style={{ width, height }}
 >
-  <div className="flex justify-end w-full">
+  <div className="flex justify-end w-full mb-3">
     <button
       className="w-6 h-6 rounded-lg hover:bg-white/10 rounded-[6px] transition-colors flex items-center justify-center"
       onClick={() => setIsQuickNavOpen(false)}
     >
       <ChevronRight size={18} className="text-white"/>
     </button>
+  </div>
+  
+  <div className="grid grid-cols-2 gap-2">
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={() => handleNavigate('/dashboard')}
+      className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+    >
+      <Home size={20} className="text-white"/>
+      <span className="text-xs text-white font-dm">Dashboard</span>
+    </motion.button>
+    
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={() => handleNavigate('/dashboard')}
+      className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+    >
+      <BookOpen size={20} className="text-white"/>
+      <span className="text-xs text-white font-dm">Tasks</span>
+    </motion.button>
+    
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={() => handleNavigate('/courseoverview')}
+      className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+    >
+      <Book size={20} className="text-white"/>
+      <span className="text-xs text-white font-dm">Courses</span>
+    </motion.button>
+    
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={() => {
+        // TODO: Add calendar page
+        console.log('Calendar navigation not implemented yet');
+      }}
+      className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors opacity-50"
+    >
+      <Calendar size={20} className="text-white"/>
+      <span className="text-xs text-white font-dm">Calendar</span>
+    </motion.button>
   </div>
 </motion.div>
 
