@@ -30,7 +30,10 @@ export default function DailySummaryCard() {
       setEventsCount(todaysEvents.length - apscClasses.length);
       setDeadlinesCount(0);
     } catch (err) {
-      console.error(err);
+      console.error('Google Calendar fetch failed:', err);
+      setClassesCount(0);
+      setEventsCount(0);
+      setDeadlinesCount(0);
     }
   };
 

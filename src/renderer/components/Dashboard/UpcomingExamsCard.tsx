@@ -8,7 +8,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/card";
-import { CalendarEvent } from "@/services/db";
+import { Task, CalendarEvent } from "@/services/db";
 import {
   Dialog,
   DialogContent,
@@ -19,10 +19,21 @@ import {
 } from "@/components/dialog";
 import { motion } from "framer-motion";
 import { ScrollArea } from "@/components/scroll-area";
-import { getAllCourses } from "@/services/core services/courseService";
+import { getTasks } from "@/services/core services/taskService";
+import { getCourseById, getAllCourses } from "@/services/core services/courseService";
 
-const formatEventDate = (start: string | Date) => {
-  const startDate = start instanceof Date ? start : new Date(start);
+type ExamItem = {
+  id: string;
+  title: string;
+  deadline: Date;
+  courseName?: string;
+  type: string;
+  description?: string;
+  source: 'database' | 'calendar';
+  location?: string;
+};
+
+const formatEventDate = (date: Date) => {
   const today = new Date();
   const tomorrow = new Date();
   tomorrow.setDate(today.getDate() + 1);
@@ -32,63 +43,123 @@ const formatEventDate = (start: string | Date) => {
     d1.getMonth() === d2.getMonth() &&
     d1.getDate() === d2.getDate();
 
-  if (isSameDay(startDate, today)) {
-    return startDate.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  } else if (isSameDay(startDate, tomorrow)) {
-    const weekday = startDate.toLocaleDateString("en-US", { weekday: "short" });
+  if (isSameDay(date, today)) {
+    return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  } else if (isSameDay(date, tomorrow)) {
+    const weekday = date.toLocaleDateString("en-US", { weekday: "short" });
     return `Tomorrow, ${weekday}`;
   } else {
-    return startDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+    return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
   }
 };
 
 export default function UpcomingExamsCard() {
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [exams, setExams] = useState<ExamItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadEvents = async () => {
+    const loadExams = async () => {
       try {
-        const [fetched, courses] = await Promise.all([
-          (window as any).electronAPI.fetchGoogleCalendarEvents(),
-          getAllCourses(),
+        const now = new Date();
+        const [allTasks, allCourses] = await Promise.all([
+          getTasks(),
+          getAllCourses()
         ]);
-        if (!fetched || fetched.length === 0) {
-          setEvents([]);
-          return;
+
+        const examTasks = allTasks.filter(task => 
+          (task.type === 'exam' || task.type === 'quiz') && 
+          task.deadline >= now && 
+          !task.completed
+        );
+
+        const databaseExams = await Promise.all(
+          examTasks.map(async (exam): Promise<ExamItem> => {
+            try {
+              const course = await getCourseById(exam.courseId);
+              return {
+                id: exam.id,
+                title: exam.title,
+                deadline: exam.deadline,
+                courseName: course?.title || course?.code || 'Unknown Course',
+                type: exam.type,
+                description: exam.description,
+                source: 'database'
+              };
+            } catch {
+              return {
+                id: exam.id,
+                title: exam.title,
+                deadline: exam.deadline,
+                courseName: 'Unknown Course',
+                type: exam.type,
+                description: exam.description,
+                source: 'database'
+              };
+            }
+          })
+        );
+
+        let calendarExams: ExamItem[] = [];
+        try {
+          const calendarEvents: CalendarEvent[] = await (window as any).electronAPI.fetchGoogleCalendarEvents();
+          
+          if (calendarEvents && calendarEvents.length > 0) {
+            const keywordRegex = /(exam|midterm|quiz|test|final)/i;
+            const examEvents = calendarEvents.filter(event => 
+              keywordRegex.test(event.summary || '') && 
+              new Date(event.start) >= now
+            );
+
+            calendarExams = examEvents.map((event): ExamItem => {
+              const matchedCourse = allCourses.find(course => 
+                event.summary?.toLowerCase().includes(course.title?.toLowerCase() || '') ||
+                event.summary?.toLowerCase().includes(course.code?.toLowerCase() || '')
+              );
+
+              return {
+                id: event.id,
+                title: event.summary || 'Untitled Exam',
+                deadline: new Date(event.start),
+                courseName: matchedCourse?.title || matchedCourse?.code || '',
+                type: 'exam',
+                description: event.description,
+                location: event.location,
+                source: 'calendar'
+              };
+            });
+          }
+        } catch (error) {
+          console.error('Failed to fetch Google Calendar events:', error);
         }
-        const keywordRegex = /(exam|midterm)/i;
-        // Group by course (if possible by sourceId or summary match)
-        const grouped: Record<string, CalendarEvent[]> = {};
-        for (const ev of fetched.filter(ev => keywordRegex.test(ev.summary))) {
-          // Try to group by sourceId (courseId), fallback to summary
-          const courseId = ev.sourceId || courses.find(c => ev.summary?.toLowerCase().includes(c.title?.toLowerCase()))?.id || "other";
-          if (!grouped[courseId]) grouped[courseId] = [];
-          grouped[courseId].push(ev);
-        }
-        // For each course, pick soonest event
-        const soonestByCourse: CalendarEvent[] = [];
-        for (const courseId in grouped) {
-          const soonest = grouped[courseId].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())[0];
-          soonestByCourse.push(soonest);
-        }
-        soonestByCourse.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-        setEvents(soonestByCourse);
-      } catch {
-        setEvents([]);
+
+        const combinedExams = [...databaseExams, ...calendarExams];
+        
+        const uniqueExams = combinedExams.filter((exam, index, arr) => {
+          return !arr.slice(0, index).some(otherExam => 
+            exam.title.toLowerCase() === otherExam.title.toLowerCase() &&
+            Math.abs(exam.deadline.getTime() - otherExam.deadline.getTime()) < 60 * 60 * 1000 
+          );
+        });
+
+        uniqueExams.sort((a, b) => a.deadline.getTime() - b.deadline.getTime());
+
+        setExams(uniqueExams);
+      } catch (error) {
+        console.error('Error loading exams:', error);
+        setExams([]);
       } finally {
         setLoading(false);
       }
     };
-    loadEvents();
+    
+    loadExams();
   }, []);
 
-  const isToday = (date: string | Date) => {
-    const d = date instanceof Date ? date : new Date(date);
+  const isToday = (date: Date) => {
     const today = new Date();
-    return d.getFullYear() === today.getFullYear() &&
-      d.getMonth() === today.getMonth() &&
-      d.getDate() === today.getDate();
+    return date.getFullYear() === today.getFullYear() &&
+      date.getMonth() === today.getMonth() &&
+      date.getDate() === today.getDate();
   };
 
   return (
@@ -103,12 +174,12 @@ export default function UpcomingExamsCard() {
           <ScrollArea className="h-full pr-2">
             <div className="flex flex-col gap-2">
               {loading ? (
-                <p className="text-neutral-400 text-sm">loading...</p>
-              ) : events.length === 0 ? (
-                <p className="text-neutral-400 text-sm">no upcoming meetings</p>
+                <p className="text-neutral-400 text-sm font-dm">loading...</p>
+              ) : exams.length === 0 ? (
+                <p className="text-neutral-400 text-sm font-dm">no upcoming exams</p>
               ) : (
-                events.map((e) => (
-                  <Dialog key={e.id}>
+                exams.map((exam) => (
+                  <Dialog key={exam.id}>
                     <DialogTrigger asChild>
                       <motion.div
                         initial={{ opacity: 0, y: 5 }}
@@ -116,30 +187,43 @@ export default function UpcomingExamsCard() {
                         transition={{ duration: 0.3 }}
                         className="flex flex-col text-sm text-white/80 font-dm border-b border-zinc-700/50 pb-1 -mt-1 p-1 rounded-lg hover:bg-zinc-800/30 cursor-pointer"
                       >
-                        <span className="font-semibold">{e.summary}</span>
+                        <span className="font-semibold">{exam.title}</span>
                         <span className="text-xs text-neutral-400">
-                          {formatEventDate(e.start)}
-                          {isToday(e.start) ? ` - ${new Date(e.end).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : ""}
+                          {exam.courseName ? `${exam.courseName} • ` : ''}{formatEventDate(exam.deadline)}
+                          {isToday(exam.deadline) ? ` - ${exam.deadline.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : ""}
                         </span>
                       </motion.div>
                     </DialogTrigger>
 
                     <DialogContent className="bg-zinc-900 border-none text-white rounded-[1em]">
                       <DialogHeader>
-                        <DialogTitle className="text-lg font-bold">{e.summary}</DialogTitle>
-                        <DialogDescription className="text-neutral-400 text-sm">
-                          {`${new Date(e.start).toLocaleDateString("en-US", {
-                            weekday: "short",
-                            month: "short",
-                            day: "numeric",
-                          })} ${new Date(e.start).toLocaleTimeString([], {
-                            hour: "numeric",
-                            minute: "2-digit",
-                          })} - ${new Date(e.end).toLocaleTimeString([], {
-                            hour: "numeric",
-                            minute: "2-digit",
-                          })}`}
-                          <p className="text-sm text-neutral-500">{e.location}</p>
+                        <DialogTitle className="text-lg font-bold font-nun">{exam.title}</DialogTitle>
+                        <DialogDescription className="text-neutral-400 text-sm font-dm">
+                          <div className="space-y-1">
+                            <p><span className="font-semibold">Course:</span> {exam.courseName}</p>
+                            <p><span className="font-semibold">Type:</span> {exam.type}</p>
+                            <p><span className="font-semibold">Date:</span> {exam.deadline.toLocaleDateString("en-US", {
+                              weekday: "long",
+                              month: "long",
+                              day: "numeric",
+                              year: "numeric",
+                            })}</p>
+                            <p><span className="font-semibold">Time:</span> {exam.deadline.toLocaleTimeString([], {
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}</p>
+                            {exam.location && (
+                              <p><span className="font-semibold">Location:</span> {exam.location}</p>
+                            )}
+                            {exam.description && (
+                              <p className="mt-2"><span className="font-semibold">Description:</span> {exam.description}</p>
+                            )}
+                            <div className="mt-2 pt-2 border-t border-zinc-700">
+                              <span className="text-xs text-neutral-500">
+                                Source: {exam.source === 'database' ? 'App Tasks' : 'Google Calendar'}
+                              </span>
+                            </div>
+                          </div>
                         </DialogDescription>
                       </DialogHeader>
                     </DialogContent>

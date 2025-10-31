@@ -199,6 +199,17 @@ export default function AddTaskDialog({
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
+        <Transition.Child
+          as={Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
+        </Transition.Child>
         <div className="fixed inset-0 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
             <Transition.Child
@@ -210,85 +221,94 @@ export default function AddTaskDialog({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-md transform rounded-xl bg-neutral-900 p-6 text-left shadow-xl transition-all">
-                <Dialog.Title className="text-lg text-white font-nun font-semibold">
-                  {taskToEdit ? "edit an existing task" : "add a new task"}
+              <Dialog.Panel className="w-full max-w-md transform rounded-xl bg-zinc-900 border border-zinc-800 p-6 text-left shadow-2xl transition-all">
+                <Dialog.Title className="text-xl text-white font-nun font-semibold mb-6">
+                  {taskToEdit ? "edit task" : "add new task"}
                 </Dialog.Title>
                 <form onSubmit={handleSubmit} onKeyPress={handleKeyPress}>
-                  <div className="mt-4 space-y-4">
-                    <div className="grid gap-1">
-                      <Label className="text-sm text-gray-400 font-mp mb-1 font-thin">
-                        task name <span className="text-red-500">*</span>
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <Label className="text-sm text-white/80 font-dm font-medium">
+                        task name <span className="text-red-400">*</span>
                       </Label>
                       <Input
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="enter task title"
-                        className="w-full flex items-center font-thin text-sm gap-2 bg-zinc-800 rounded-xl text-white font-dm h-10 border-none outline-none transition-transform duration-200 ease-in-out focus:ring-2 focus:ring-zinc-500 focus:ring-opacity-50 active:scale-95 px-2"
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded-xl text-white font-dm h-12 px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder-white/40"
                       />
                     </div>
-                    <div className="grid gap-1">
-                      <Label className="text-sm text-gray-400 font-mp mb-1 font-thin">
-                        summary
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm text-white/80 font-dm font-medium">
+                        description
                       </Label>
                       <Input
                         value={summary}
                         onChange={(e) => setSummary(e.target.value)}
-                        placeholder="optional summary"
-                        className="w-full flex items-center font-thin text-sm gap-2 bg-zinc-800 rounded-xl text-white font-dm h-10 border-none outline-none transition-transform duration-200 ease-in-out focus:ring-2 focus:ring-zinc-500 focus:ring-opacity-50 active:scale-95 px-2"
+                        placeholder="optional description"
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded-xl text-white font-dm h-12 px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder-white/40"
                       />
                     </div>
-                    <div className="grid gap-1">
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm text-white/80 font-dm font-medium">
+                        deadline <span className="text-red-400">*</span>
+                      </Label>
                       <DateTimePicker
                         selected={deadline}
                         onChange={setDeadline}
                         allDay={allDay}
-                        label="select date"
+                        label="select date & time"
                       />
                     </div>
-                    <div>
-                      <Label className="text-sm text-gray-400 mb-2 block font-mp font-thin">
-                        course type
+                    <div className="space-y-3">
+                      <Label className="text-sm text-white/80 font-dm font-medium">
+                        task type
                       </Label>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         {courseTypeOptions.map((option) => (
-                          <label key={option} className="flex items-center gap-2 cursor-pointer">
+                          <label key={option} className="flex items-center gap-2 cursor-pointer p-3 rounded-xl bg-zinc-800/50 hover:bg-zinc-800 transition-colors border border-zinc-700/50">
                             <input
                               type="radio"
                               name="courseType"
                               value={option}
                               checked={selectedType === option}
                               onChange={() => handleTypeChange(option)}
-                              className="w-4 h-4 text-white bg-zinc-800 border-gray-600 focus:ring-white focus:ring-2"
+                              className="w-4 h-4 text-blue-500 bg-zinc-700 rounded-full border-zinc-600 focus:ring-blue-500 focus:ring-2"
                             />
-                            <span className="text-sm text-gray-300 font-dm">{courseTypeLabels[option]}</span>
+                            <span className="text-sm text-white font-dm">{courseTypeLabels[option]}</span>
                           </label>
                         ))}
-                        {selectedType === "custom" && (
-                          <Input
-                            value={customType}
-                            onChange={(e) => setCustomType(e.target.value)}
-                            placeholder="custom type"
-                            className="w-full flex items-center font-thin text-sm gap-2 bg-zinc-800 rounded-xl text-white font-dm h-10 border-none outline-none mt-2 px-2"
-                          />
-                        )}
                       </div>
+                      {selectedType === "custom" && (
+                        <Input
+                          value={customType}
+                          onChange={(e) => setCustomType(e.target.value)}
+                          placeholder="enter custom type"
+                          className="w-full bg-zinc-800 border rounded-xl border-zinc-700 text-white font-dm h-10 px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder-white/40"
+                        />
+                      )}
                     </div>
-                    <div className="flex flex-col gap-2 mt-8">
-                      <Label className="text-sm text-gray-400 font-thin block font-dm">event type</Label>
-                      <div className="flex items-center gap-4 mt-3">
-                        <Checkbox
-                          checked={allDay}
-                          onCheckedChange={(checked) => setAllDay(!!checked)}
-                          className="border-white text-white focus:ring-white"
-                        />
-                        <Label className="text-white/80 font-dm">all day</Label>
-                        <Checkbox
-                          checked={recurring}
-                          onCheckedChange={(checked) => setRecurring(!!checked)}
-                          className="border-white text-white focus:ring-white"
-                        />
-                        <Label className="text-white/80 font-dm">recurring</Label>
+                    <div className="space-y-3">
+                      <Label className="text-sm text-white/80 font-dm font-medium">options</Label>
+                      <div className="flex items-center gap-6">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <Checkbox
+                            checked={allDay}
+                            onCheckedChange={(checked) => setAllDay(!!checked)}
+                            className="border-zinc-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                          />
+                          <span className="text-white font-dm text-sm">all day</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <Checkbox
+                            checked={recurring}
+                            onCheckedChange={(checked) => setRecurring(!!checked)}
+                            className="border-zinc-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                          />
+                          <span className="text-white font-dm text-sm">recurring</span>
+                        </label>
                       </div>
                       <AnimatePresence initial={false}>
                         {recurring && (
@@ -298,12 +318,12 @@ export default function AddTaskDialog({
                             animate={{ opacity: 1, height: "auto" }}
                             exit={{ opacity: 0, height: 0 }}
                             transition={{ duration: 0.25, ease: "easeInOut" }}
-                            className="overflow-hidden"
+                            className="overflow-hidden bg-zinc-800/30 rounded-xl p-4 border border-zinc-700/50"
                           >
-                            <div className="flex items-center gap-2 mt-2 ml-2">
-                              <Label className="text-white/70 font-dm mr-2">repeat:</Label>
+                            <div className="flex items-center gap-3">
+                              <Label className="text-white font-dm text-sm font-medium">repeat:</Label>
                               <select
-                                className="bg-zinc-800 text-white rounded px-2 py-1 text-sm focus:ring-2 focus:ring-zinc-500 focus:outline-none"
+                                className="bg-zinc-800 border border-zinc-700 text-white rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-dm"
                                 value={recurrence}
                                 onChange={(e) => setRecurrence(e.target.value)}
                               >
@@ -326,8 +346,8 @@ export default function AddTaskDialog({
                                     <Input
                                       type="number"
                                       min={1}
-                                      placeholder="interval (days)"
-                                      className="w-24 ml-2 bg-zinc-800 text-white rounded px-2 py-1 text-sm focus:ring-2 focus:ring-zinc-500 focus:outline-none"
+                                      placeholder="days"
+                                      className="w-20 bg-zinc-800 border border-zinc-700 text-white rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-dm"
                                     />
                                   </motion.div>
                                 )}
@@ -338,11 +358,18 @@ export default function AddTaskDialog({
                       </AnimatePresence>
                     </div>
                   </div>
-                  <div className="flex justify-end mt-6">
+                  <div className="flex justify-end gap-3 pt-6 border-t border-zinc-800">
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-dm text-sm transition-all duration-200 border border-zinc-700"
+                    >
+                      cancel
+                    </button>
                     <button
                       type="submit"
                       disabled={isButtonDisabled}
-                      className="px-4 py-1 bg-white hover:bg-gray-100 disabled:bg-gray-300 disabled:cursor-not-allowed text-zinc-800 rounded-[0.50rem] font-dm text-sm transition-all duration-200 hover:scale-105 hover:shadow-md"
+                      className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:cursor-not-allowed disabled:text-white/50 text-white rounded-xl font-dm text-sm transition-all duration-200 hover:scale-105 hover:shadow-lg"
                     >
                       {isSubmitting ? "saving..." : taskToEdit ? "update task" : "add task"}
                     </button>

@@ -91,7 +91,7 @@ if (windowHeight <= 400) {
 >
   <div className="flex justify-end w-full mb-3">
     <button
-      className="w-6 h-6 rounded-lg hover:bg-white/10 rounded-[6px] transition-colors flex items-center justify-center"
+      className="w-6 h-6 rounded-xl hover:bg-white/10 transition-colors flex items-center justify-center"
       onClick={() => setIsQuickNavOpen(false)}
     >
       <ChevronRight size={18} className="text-white"/>
@@ -103,7 +103,7 @@ if (windowHeight <= 400) {
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
       onClick={() => handleNavigate('/dashboard')}
-      className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+      className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-colors"
     >
       <Home size={20} className="text-white"/>
       <span className="text-xs text-white font-dm">Dashboard</span>
@@ -113,7 +113,7 @@ if (windowHeight <= 400) {
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
       onClick={() => handleNavigate('/dashboard')}
-      className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+      className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-colors"
     >
       <BookOpen size={20} className="text-white"/>
       <span className="text-xs text-white font-dm">Tasks</span>
@@ -123,7 +123,7 @@ if (windowHeight <= 400) {
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
       onClick={() => handleNavigate('/courseoverview')}
-      className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+      className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-colors"
     >
       <Book size={20} className="text-white"/>
       <span className="text-xs text-white font-dm">Courses</span>
@@ -136,7 +136,7 @@ if (windowHeight <= 400) {
         // TODO: Add calendar page
         console.log('Calendar navigation not implemented yet');
       }}
-      className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors opacity-50"
+      className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-colors opacity-50"
     >
       <Calendar size={20} className="text-white"/>
       <span className="text-xs text-white font-dm">Calendar</span>

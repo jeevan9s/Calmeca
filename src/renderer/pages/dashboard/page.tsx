@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 
 import EventsCard from "@/renderer/components/Dashboard/EventsCard";
 import CoursesCard from "@/renderer/components/Dashboard/CoursesCard";
-import ClubsCard from "@/renderer/components/Dashboard/clubsCard";
+import ClubsCard from "@/renderer/components/Dashboard/ClubsCard";
 import DeadlinesCard from "@/renderer/components/Dashboard/DeadlinesCard";
 import UpcomingExamsCard from "@/renderer/components/Dashboard/UpcomingExamsCard";
 import FloatingActionButton from "@/renderer/components/FloatingActionButton";
@@ -44,7 +44,9 @@ export default function Dashboard() {
 
       setEvents(filteredEvents);
     } catch (err) {
-      console.error(err);
+      console.error('Google Calendar fetch failed:', err);
+      // Fallback to empty events array when calendar auth fails
+      setEvents([]);
     } finally {
       setLoading(false);
     }

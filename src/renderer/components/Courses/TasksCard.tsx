@@ -36,7 +36,7 @@ export default function TasksCard({ courseTitle, courseId }: { courseTitle: stri
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
-  const [filter, setFilter] = useState<"all" | "completed" | "pending" | "today" | "tomorrow">("all");
+  const [filter, setFilter] = useState<"all" | "completed" | "pending" | "today" | "tomorrow" | "overdue">("all");
   const [taskSubtasks, setTaskSubtasks] = useState<Record<string, SubTask[]>>({});
 
   const fetchTasks = async () => {
@@ -97,9 +97,17 @@ export default function TasksCard({ courseTitle, courseId }: { courseTitle: stri
 
     if (diff === 0) return `today at ${timeStr}`;
     if (diff === 1) return `tomorrow at ${timeStr}`;
+    if (diff < 0 && !task.completed) return `overdue - ${formattedDate}`;
     return `${formattedDate} at ${timeStr}`;
   };
 
+  const isOverdue = (task: Task) => {
+    if (!task.deadline || task.completed) return false;
+    return new Date() > new Date(task.deadline);
+  };
+
+  const overdueTasks = tasks.filter(task => isOverdue(task));
+  
   const filteredTasks = tasks.filter((task) => {
     if (filter === "completed") return task.completed;
     if (filter === "pending") return !task.completed;
@@ -111,17 +119,29 @@ export default function TasksCard({ courseTitle, courseId }: { courseTitle: stri
       if (!task.deadline) return false;
       return differenceInCalendarDays(new Date(task.deadline), new Date()) === 1;
     }
+    if (filter === "overdue") {
+      return isOverdue(task);
+    }
     return true;
   });
 
   return (
     <>
-      <motion.div whileHover={{ scale: 1.01, y: -1 }} transition={{ duration: 0.2 }} className="rounded-lg w-full">
-        <Card className="h-[36em] bg-[#0f0f10ff] w-full rounded-lg flex flex-col">
+      <motion.div whileHover={{ scale: 1.01, y: -1 }} transition={{ duration: 0.2 }} className="rounded-xl w-full">
+        <Card className="h-[36em] bg-[#0f0f10ff] w-full rounded-xl flex flex-col">
           
           <CardHeader className="flex flex-row items-left justify-between gap-2 flex-nowrap">
-                      <CardTitle className="font-nun">tasks</CardTitle>
-          <CardDescription className="text-white/50 font-dm">task organization</CardDescription>
+            <div className="flex flex-col">
+              <CardTitle className="font-nun">tasks</CardTitle>
+              <CardDescription className="text-white/50 font-dm">
+                task organization
+                {overdueTasks.length > 0 && (
+                  <span className="ml-2 px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full text-xs">
+                    {overdueTasks.length} overdue
+                  </span>
+                )}
+              </CardDescription>
+            </div>
             <div className="relative w-full flex items-center h-10">
               <div className="absolute left-0 flex items-center gap-2">
                 <Button
@@ -150,6 +170,8 @@ export default function TasksCard({ courseTitle, courseId }: { courseTitle: stri
                       <Button variant={filter === "completed" ? "default" : "outline"} className="bg-zinc-800 rounded-xl text-white font-dm w-full" onClick={() => setFilter("completed")}>completed</Button>
                       <Button variant={filter === "pending" ? "default" : "outline"} className="bg-zinc-800 rounded-xl text-white font-dm w-full" onClick={() => setFilter("pending")}>pending</Button>
                       <Button variant={filter === "today" ? "default" : "outline"} className="bg-zinc-800 rounded-xl text-white font-dm w-full" onClick={() => setFilter("today")}>today</Button>
+                      <Button variant={filter === "tomorrow" ? "default" : "outline"} className="bg-zinc-800 rounded-xl text-white font-dm w-full" onClick={() => setFilter("tomorrow")}>tomorrow</Button>
+                      <Button variant={filter === "overdue" ? "default" : "outline"} className="bg-red-800 rounded-xl text-white font-dm w-full" onClick={() => setFilter("overdue")}>overdue</Button>
                     </div>
                   </PopoverContent>
                 </Popover>
@@ -174,19 +196,33 @@ export default function TasksCard({ courseTitle, courseId }: { courseTitle: stri
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="flex-1 border border-zinc-700/50 p-2 rounded-xl hover:bg-zinc-800/50 cursor-pointer flex justify-between items-center"
+                        className={`flex-1 border p-2 rounded-xl hover:bg-zinc-800/50 cursor-pointer flex justify-between items-center ${
+                          isOverdue(task) 
+                            ? 'border-red-500/50 bg-red-500/5' 
+                            : 'border-zinc-700/50'
+                        }`}
                         onClick={() => navigate(`/tasks/${task.id}`)}
                       >
-                        <span className={` font-dm ${task.completed ? "line-through" : "text-white"}`}>
+                        <span className={`font-dm ${
+                          task.completed 
+                            ? "line-through text-white/60" 
+                            : isOverdue(task)
+                              ? "text-red-300"
+                              : "text-white"
+                        }`}>
                           {task.title}
                         </span>
-                        <span className="text-xs text-gray-400 ml-2">{getDeadlineLabel(task)}</span>
+                        <span className={`text-xs ml-2 font-dm ${
+                          isOverdue(task) ? "text-red-400" : "text-white/60"
+                        }`}>
+                          {getDeadlineLabel(task)}
+                        </span>
                       </motion.div>
                       <DialogTrigger asChild>
                         <Button 
                           size="sm" 
                           variant="outline"
-                          className="bg-zinc-800 border-zinc-600 text-white hover:bg-zinc-700 rounded-lg px-2 py-1 text-xs"
+                          className="bg-zinc-800 border-zinc-600 text-white hover:bg-zinc-700 rounded-xl px-2 py-1 text-xs"
                           onClick={(e) => e.stopPropagation()}
                         >
                           •••

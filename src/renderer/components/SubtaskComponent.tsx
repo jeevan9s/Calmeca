@@ -77,12 +77,12 @@ export default function SubtaskComponent({
   return (
     <div className="mt-4 space-y-2">
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-gray-300">Subtasks</h4>
+        <h4 className="text-sm font-medium text-gray-300 font-nun">subtasks</h4>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsAdding(true)}
-          className="p-1 hover:bg-zinc-700 rounded transition-colors"
+          className="p-1 hover:bg-zinc-700 rounded transition-colors font-dm"
         >
           <Plus className="w-4 h-4 text-gray-400" />
         </motion.button>
@@ -155,7 +155,7 @@ export default function SubtaskComponent({
                 }
               }}
               className="flex-1 bg-transparent border-none outline-none text-sm text-gray-300 placeholder-gray-500"
-              placeholder="Add a subtask..."
+              placeholder="add a subtask..."
               autoFocus
             />
             <div className="flex items-center gap-1">
