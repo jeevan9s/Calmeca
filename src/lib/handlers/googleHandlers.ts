@@ -206,13 +206,16 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
       orderBy: "startTime",
     });
 
-    return (res.data.items || []).map((e) => ({
+    const filteredEvents = await res.data.items?.filter(event => {return !event.summary?.includes("Week")} )
+
+    return (filteredEvents || []).map((e) => ({
       id: e.id,
-      summary: e.summary || "(No Title)",
+      summary: e.summary || "untitled)",
       start: e.start?.dateTime || e.start?.date,
       end: e.end?.dateTime || e.end?.date,
       location: e.location,
     }));
+    
   });
 
   ipcMain.handle(
@@ -300,3 +303,4 @@ export function registerGoogleHandlers(mainWindow: BrowserWindow) {
 );
 
 }
+

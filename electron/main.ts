@@ -81,6 +81,7 @@ function createWindow() {
     win.loadFile(path.join(__dirname, './index.html'))
   }
 
+  // window functionality 
   win.on('closed', () => {
     win = null
   })

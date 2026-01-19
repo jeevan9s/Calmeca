@@ -8,6 +8,8 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/card";
+import { Button } from "@/components/button";
+import { ExternalLink } from "react-feather";
 import { motion } from "framer-motion";
 import { ScrollArea } from "@/components/scroll-area";
 import { CalendarEvent } from "@/services/db";
@@ -53,6 +55,11 @@ export default function ClubsCard() {
           setEvents([]);
           return;
         }
+
+        if (fetched ) {
+
+        }
+
         const upcoming = fetched
           .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
           .slice(0, 2);
@@ -73,6 +80,8 @@ export default function ClubsCard() {
       d.getMonth() === today.getMonth() &&
       d.getDate() === today.getDate();
   };
+
+  
 
   return (
     <motion.div whileHover={{ scale: 1.01, y: -2 }} transition={{ duration: 0.2 }} className="rounded-lg flex-1">
@@ -113,6 +122,25 @@ export default function ClubsCard() {
                             day: "numeric",
                           })} ${new Date(e.start).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} - ${new Date(e.end).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`}
                           <p className="text-sm text-neutral-500">{e.location}</p>
+
+                                                    <Button
+                            className="font-dm font-light flex items-center ml-[-0.75em] rounded-md hover:underline transition-transform duration-200 hover:scale-105"
+                            onClick={() => {
+                              const start = new Date(e.start);
+                              
+                              const end = new Date(e.end);
+                              const formatDate = (date: Date) =>
+                                date.toISOString().replace(/-|:|\.\d{3}/g, "");
+                              const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+                                e.summary
+                              )}&dates=${formatDate(start)}/${formatDate(end)}${
+                                e.location ? `&location=${encodeURIComponent(e.location)}` : ""
+                              }${e.description ? `&details=${encodeURIComponent(e.description)}` : ""}`;
+                              window.open(url, "_blank");
+                            }}
+                          >
+                            open in Google Calendar <ExternalLink size={14} />
+                          </Button>
                         </DialogDescription>
                       </DialogHeader>
                     </DialogContent>

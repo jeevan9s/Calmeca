@@ -30418,6 +30418,7 @@ function registerGoogleHandlers(mainWindow) {
     }
   });
   ipcMain.handle("fetch-google-calendar-events", async (_event, category) => {
+    var _a;
     const oauth2Client = await getOAuthClient();
     const calendar = google.calendar({ version: "v3", auth: oauth2Client });
     const CALENDAR_IDS = {
@@ -30431,12 +30432,16 @@ function registerGoogleHandlers(mainWindow) {
       singleEvents: true,
       orderBy: "startTime"
     });
-    return (res.data.items || []).map((e) => {
-      var _a, _b, _c, _d;
+    const filteredEvents = await ((_a = res.data.items) == null ? void 0 : _a.filter((event) => {
+      var _a2;
+      return !((_a2 = event.summary) == null ? void 0 : _a2.includes("Week"));
+    }));
+    return (filteredEvents || []).map((e) => {
+      var _a2, _b, _c, _d;
       return {
         id: e.id,
-        summary: e.summary || "(No Title)",
-        start: ((_a = e.start) == null ? void 0 : _a.dateTime) || ((_b = e.start) == null ? void 0 : _b.date),
+        summary: e.summary || "untitled)",
+        start: ((_a2 = e.start) == null ? void 0 : _a2.dateTime) || ((_b = e.start) == null ? void 0 : _b.date),
         end: ((_c = e.end) == null ? void 0 : _c.dateTime) || ((_d = e.end) == null ? void 0 : _d.date),
         location: e.location
       };
