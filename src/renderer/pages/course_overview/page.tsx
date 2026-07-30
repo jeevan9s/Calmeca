@@ -112,7 +112,7 @@ function CourseOverviewPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen w-full bg-zinc-950/90 text-white">
+      <div className="min-h-screen w-full bg-zinc-950/70 text-white">
         <Layout>
           <div className="px-4 flex flex-col gap-y-1 mb-3">
             <h1 className="font-nun font-bold text-2xl sm:text-3xl lg:text-4xl">course overview</h1>
@@ -130,7 +130,7 @@ function CourseOverviewPage() {
     "flex items-center gap-2 bg-zinc-800 rounded-xl text-white font-dm h-10 transition-transform duration-200 ease-in-out hover:scale-105 hover:shadow-lg hover:bg-zinc-700 hover:text-white focus:ring-2 focus:ring-zinc-500 focus:ring-opacity-50 active:scale-95 px-2";
 
   return (
-    <div className="min-h-screen w-full bg-zinc-950/90 text-white">
+    <div className="min-h-screen w-full bg-zinc-950/70 text-white">
       <Layout>
         <div className="px-4 flex flex-col gap-y-1 mb-3">
           <h1 className="font-nun font-bold text-2xl sm:text-3xl lg:text-4xl">courses overview</h1>
@@ -145,16 +145,23 @@ function CourseOverviewPage() {
               onChange={e => setSearch(e.target.value)}
               className= "w-full sm:w-64 flex items-center gap-2 bg-zinc-800 rounded-xl text-white font-dm h-10 border-none outline-none transition-transform duration-200 ease-in-out focus:ring-2 focus:ring-zinc-500 focus:ring-opacity-50 active:scale-95 px-2"
             />
-            <Select onValueChange={setSort}>
-              <SelectTrigger className={btnClass + " w-32"}>
-                <SelectValue placeholder="sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="alpha">alphabetical</SelectItem>
-                <SelectItem value="newest">newest</SelectItem>
-                <SelectItem value="oldest">oldest</SelectItem>
-              </SelectContent>
-            </Select>
+
+<Select onValueChange={setSort}>
+  <SelectTrigger className={`${btnClass} w-32 border-none bg-zinc-900 rounded-lg text-white hover:bg-zinc-800`}>
+    <SelectValue placeholder="sort by" />
+  </SelectTrigger>
+  <SelectContent className=" border-none rounded-xl mt-2 bg-zinc-900 text-white border-zinc-700">
+    <SelectItem value="alpha" className="focus:bg-zinc-800 focus:text-white cursor-pointer rounded-xl">
+      alphabetical
+    </SelectItem>
+    <SelectItem value="newest" className="focus:bg-zinc-800 focus:text-white cursor-pointer rounded-xl">
+      newest
+    </SelectItem>
+    <SelectItem value="oldest" className="focus:bg-zinc-800 focus:text-white cursor-pointer rounded-xl">
+      oldest
+    </SelectItem>
+  </SelectContent>
+</Select>
           </div>
 
 <div className="flex flex-row items-center gap-4">

@@ -172,7 +172,7 @@ export default function TaskHomepage() {
     }
 
     return (
-        <div className="min-h-screen bg-zinc-950/90">
+        <div className="min-h-screen bg-zinc-950/70">
             <div className="max-w-4xl mx-auto p-6">
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}

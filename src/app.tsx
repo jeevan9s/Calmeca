@@ -8,7 +8,7 @@ import "@/renderer/styles/App.css";
 
 export default function App() {
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full bg-transparent">
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/dashboard" element={<Dashboard />} />

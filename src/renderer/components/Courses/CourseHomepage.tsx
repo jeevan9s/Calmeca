@@ -69,7 +69,7 @@ export default function CourseHomepage({
   };
 
   return (
-    <div className="w-full min-h-screen bg-zinc-950/90 text-white">
+    <div className="w-full min-h-screen bg-zinc-950/70 text-white">
       <Layout>
         <CourseHeader course={course} onUpdateCourse={onUpdateCourse} />
 
